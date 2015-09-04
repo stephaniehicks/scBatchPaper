@@ -1,0 +1,1675 @@
+---
+title: "Create Figures for Hicks et al. paper"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+```
+
+```{r, echo = FALSE}
+options(warn = -1)
+library(ggplot2)
+library(grid)
+library(cowplot)
+library(GenomicFeatures)
+library(vcd)
+library(stringr)
+library(reshape2)
+library(tidyr)
+library(RColorBrewer)
+library(dplyr)
+
+tidyQuants <- function(object, PDGval, qRange, filterAbove = 1){
+    keepIndex <- object >= filterAbove
+    out = sapply(seq_len(ncol(object)), function(x){
+        quantile(object[keepIndex[,x], x], probs = qRange) })
+    
+    dat = data.frame("PDG" = PDGval, 
+                     matrix(out, ncol = length(qRange), byrow = TRUE))
+    colnames(dat)[-1] <- as.character(qRange)
+    dat = gather(dat, key = PDG)
+    colnames(dat)[2] <- "Quantile"
+    return(dat)
+}
+working_path <- "~/Dropbox/DFCI/manuscripts/scRNASeqBatch/figures/"
+```
+
+
+
+
+## Load Trapnell et al. (2014) FPKM and phenotypic data
+```{r}
+library(scRNASeqHumanTrapnellMyoblast)
+data("myoblastHumanFPKM")
+
+pd <- pData(myoblastHumanFPKM)
+eset <- exprs(myoblastHumanFPKM)
+
+# remove control cells, debris cells, and wells with more than 1 cell
+pd <- pd[pd$sampleType == "SC" & pd$control == "control well: FALSE" & 
+                      pd$debris == "debris: FALSE" & 
+                      pd$numcells == "cells in well: 1", ]
+eset <- eset[, match(rownames(pd), colnames(eset))]
+
+# calculate PDG
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pdTrapnell <- pd
+eTrapnell <- log2(eset + 1) # log transform FPKMs
+
+# calculate standardized pearson contingency coefficient
+t1 <- factor(pdTrapnell$hour)
+t2 <- factor(paste(pdTrapnell$runID, pdTrapnell$fcID, sep = "_"))
+nr <- length(levels(t1))
+nc <- length(levels(t2))
+assocstats(table(t1, t2))$cont / (((nr-1) / nr) * ((nc-1)/nc))^(1/4)
+```
+
+
+## Load Shalek et al. (2014) TPM and phenotypic data
+```{r}
+library(scRNASeqMouseShalekDendritic)
+data("dendriticMouseTPM")
+
+eset <- exprs(dendriticMouseTPM)
+pd <- pData(dendriticMouseTPM)
+keepIDs <- (grepl(pattern = "BMDC \\(([0-9]+h)", pd$source_name_ch1) |  
+            grepl(pattern = "(Unstimulation)", pd$source_name_ch1)) & 
+            (!grepl(pattern = "IFN-B", pd$source_name_ch1) & 
+            !grepl(pattern = "StimulationReplicate Experiment)", pd$source_name_ch1))
+
+pd <- pd[keepIDs, ]
+eset <- eset[, keepIDs]
+
+pd$source_name_ch1 <- factor(pd$source_name_ch1)
+pd$stim <- ifelse(!grepl(pattern = "(Unstimulation)", pd$source_name_ch1), 
+        str_sub(unlist(lapply(str_split(pd$source_name_ch1, " ", n = 4), 
+                              function(x) x[4])), start = 1, end = -2),
+        str_sub(unlist(lapply(str_split(pd$source_name_ch1, " ", n = 4), 
+                              function(x) x[2])), start = 2, end = -2))
+pd$time <- ifelse(grepl(pattern = "(Unstimulation)", pd$source_name_ch1), NA,
+        str_sub(unlist(lapply(str_split(pd$source_name_ch1, " ", n = 2), 
+                              function(x) x[2])), start = 2, end = -18))
+pd$cond <- ifelse(grepl(pattern = "(Unstimulation)",
+                                pd$source_name_ch1), NA,
+        str_sub(unlist(lapply(str_split(pd$source_name_ch1, " ", n = 2), 
+                              function(x) x[2])), start = 5, end = -13))
+
+# calculate PDG
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+
+# Subset for only the LPS experimental condition 
+keepIDs <- grepl(pattern = "^LPS_([0-9]+h)_S", pd$title) 
+eShalek <- log2(eset[, keepIDs] + 1) # log transform FPKMs
+pdShalek <- pd[keepIDs, ]
+
+# calculate standardized pearson contingency coefficient
+t1 <- factor(pdShalek$time)
+t2 <- factor(paste(pdShalek$runID, pdShalek$fcLane, sep = "_"))
+nr <- length(levels(t1))
+nc <- length(levels(t2))
+assocstats(table(t1, t2))$cont / (((nr-1) / nr) * ((nc-1)/nc))^(1/4)
+```
+
+## Load Treutlein et al. (2014) FPKM and phenotypic data
+```{r}
+library(scRNASeqMouseTreutleinLineage)
+data("lungMouseFPKM")
+
+pd <- pData(lungMouseFPKM)
+eset <- exprs(lungMouseFPKM)
+
+# remove bulk and no cell
+pd <- pd[pd$sampleType == "SC", ]
+eset <- eset[, match(rownames(pd), colnames(eset))]
+
+# calculate PDG
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pdTreutlein <- pd
+eTreutlein <- log2(eset + 1) # log transform FPKMs
+levels(pdTreutlein$day) <- c(levels(pdTreutlein$day)[1:3], "Adult")
+
+# calculate standardized pearson contingency coefficient
+t1 <- pdTreutlein$day
+t2 <- factor(paste(pdTreutlein$runID, pdTreutlein$fcID, sep = "_"))
+nr <- length(levels(t1))
+nc <- length(levels(t2))
+assocstats(table(t1, t2))$cont / (((nr-1) / nr) * ((nc-1)/nc))^(1/4)
+
+```
+
+
+## Load Deng et al. (2014) RPKM and phenotypic data
+```{r}
+library(scRNASeqMouseDengMonoAllelic)
+data("embryoMouseRPKM")
+
+eset <- exprs(embryoMouseRPKM)
+pd <- pData(embryoMouseRPKM)
+
+# calculate PDG
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pdDeng <- pd
+eDeng <- log2(eset + 1) # log transform RPKMs
+
+# calculate standardized pearson contingency coefficient
+t1 <- pdDeng$time
+t2 <- factor(paste(pdDeng$runID, pdDeng$fcLane, sep = "_"))
+nr <- length(levels(t1))
+nc <- length(levels(t2))
+assocstats(table(t1, t2))$cont / (((nr-1) / nr) * ((nc-1)/nc))^(1/4)
+```
+
+
+
+## Load Patel et al. (2014) TPM and phenotypic data
+```{r}
+library(scRNASeqHumanPatelGlioblastoma)
+
+data("glioHumanCount")
+eset <- assay(glioHumanCount)
+pd <- colData(glioHumanCount)
+PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+
+data("glioHumanTPM")
+eset <- exprs(glioHumanTPM)
+pd <- pData(glioHumanTPM)
+pd$PDG <- PDG[match(rownames(pd), names(PDG))]
+
+ePatel<- eset[, pd$sampleType == "SC"]
+pdPatel <- pd[pd$sampleType == "SC", ]
+
+# calculate standardized pearson contingency coefficient
+t1 <- pdPatel$tumorName
+t2 <- factor(paste(pdPatel$runID, pdPatel$fcLane, sep = "_"))
+nr <- length(levels(t1))
+nc <- length(levels(t2))
+assocstats(table(t1, t2))$cont / (((nr-1) / nr) * ((nc-1)/nc))^(1/4)
+```
+
+
+# Figure 2
+
+```{r, fig.width=18, fig.height=12}
+
+##### Figure 2A
+dat <- sweep(ePatel, 1, rowMeans(ePatel), FUN = "-")
+s <- svd(ePatel)
+scores <- data.frame(pdPatel, s$v[, 1:5])
+pc1Var <- c(s$d^2 / sum(s$d^2))[1]
+PC1.Patel <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Patel et al., 2014 (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+##### Figure 2B
+dat <- sweep(eTrapnell, 1, rowMeans(eTrapnell), FUN = "-")
+s <- svd(dat)
+scores <- data.frame(pdTrapnell, s$v[, 1:5], 
+                     "Batch" = factor(paste0(pdTrapnell$runID, pdTrapnell$fcLane)))
+pc1Var <- c(s$d^2 / sum(s$d^2))[1]
+scores$X1 <- scores$X1*(-1)
+PC1.Trapnell <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Trapnell et al., 2014 (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+##### Figure 2C
+dat <- sweep(eShalek, 1, rowMeans(eShalek), FUN = "-")
+s <- svd(dat)
+scores <- data.frame(pdShalek, s$v[, 1:5], 
+            "Batch" = factor(paste0(pdShalek$runID, pdShalek$fcLane)))
+pc1Var <- c(s$d^2 / sum(s$d^2))[1]
+PC1.Shalek <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Shalek et al., 2014 (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+##### Figure 2D
+dat <- sweep(eTreutlein, 1, rowMeans(eTreutlein), FUN = "-")
+s <- svd(dat)
+scores <- data.frame(pdTreutlein, s$v[, 1:5])
+pc1Var <- c(s$d^2 / sum(s$d^2))[1]
+PC1.Treutlein <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Treutlein et al., 2014 (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+##### Figure 2E and 2F
+zz <- levels(pdDeng$time)
+pdDeng$bin <- ifelse(pdDeng$time %in% zz[1:2], "Bin A", 
+            ifelse(pdDeng$time %in% zz[3:4], "Bin B", 
+                   ifelse(pdDeng$time %in% zz[5:7], "Bin C", "Bin D")))
+
+dat <- sweep(eDeng[, pdDeng$bin == "Bin C"], 1, rowMeans(eDeng[, pdDeng$bin == "Bin C"]), FUN = "-")
+s <- svd(dat)
+pcVar <- c(s$d^2 / sum(s$d^2))[1:3]
+scores <- data.frame(pdDeng[pdDeng$bin == "Bin C", ], s$v[, 1:3])
+
+PC1.Deng.E <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Deng et al., 2014 (Group C) (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+
+
+dat <- sweep(eDeng[, pdDeng$bin %in% c("Bin D")], 1, 
+             rowMeans(eDeng[, pdDeng$bin == c("Bin D")]), FUN = "-")
+s <- svd(dat)
+pcVar <- c(s$d^2 / sum(s$d^2))[1:3]
+scores <- data.frame(pdDeng[pdDeng$bin %in% c("Bin D"), ], s$v[, 1:3])
+
+PC1.Deng.F <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Deng et al., 2014 (Group D) (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+p1 <- plot_grid(PC1.Patel, PC1.Trapnell, PC1.Shalek, PC1.Treutlein, PC1.Deng.E, PC1.Deng.F,
+          labels = c("A", "B", "C", "D", "E", "F"), label_size = 25, ncol = 3)
+p1
+
+# pdf(paste0(working_path, "scBatchFig2.pdf"), width = 18, height = 12)
+# print(p1)
+# dev.off()
+```
+
+# Figure 3 
+
+```{r, fig.width=12, fig.height=8}
+colTum <- brewer.pal(8, "Dark2")[c(1:5)]
+colRun <- brewer.pal(9, "Set1")[c(3,5,4, 8, 1:2)]
+
+Tumor = factor(pdPatel$tumorName)
+levels(Tumor) <- c("Tumor 5", paste0("Tumor ", 1:4))
+Tumor = factor(Tumor,levels(Tumor)[c(2:5, 1)])
+Batch = factor(pdPatel$runID)
+levels(Batch) <- c("Batch 5", "Batch 2", "Batch 3", "Batch 6", "Batch 1", "Batch 4")
+Batch = factor(Batch,levels(Batch)[c(5, 2, 3, 6, 1, 4)])
+PDG = pdPatel$PDG
+
+s <- svd(ePatel - rowMeans(ePatel))
+pcVar <- c(s$d^2 / sum(s$d^2))[1:3]
+scores <- data.frame(Tumor, Batch, PDG, s$v[,1:3])
+PC1.2.byTumor <- ggplot(scores, aes(x = X1, y = X2, colour = Tumor)) + 
+    geom_point(size = 4) + 
+    scale_colour_manual(values = colTum, name="Biological\nGroup") + 
+    xlab(paste0("Principal Component 1 (", round(pcVar[1],2)*100, "%)")) + 
+    ylab(paste0("Principal Component 2 (", round(pcVar[2],2)*100, "%)"))
+
+PC1.2.byBatch <- ggplot(scores, aes(x = X1, y = X2, colour = Batch)) + 
+    geom_point(size = 4) + scale_colour_manual(values = colRun) + 
+    xlab(paste0("Principal Component 1 (", round(pcVar[1],2)*100, "%)")) + 
+    ylab(paste0("Principal Component 2 (", round(pcVar[2],2)*100, "%)"))
+
+Batch = factor(Batch, levels = names(sort(unlist(lapply( split(PDG, Batch), median)), 
+                                          decreasing = FALSE)))
+
+dat = data.frame("Batch" = Batch, "Fraction" = PDG)
+p.boxplot <- ggplot(dat, aes(Batch, Fraction, fill = Batch)) + geom_boxplot() +
+    xlab(" ") + ylab(" ") +
+    scale_fill_manual(values = colRun[factor(levels(Batch))], 
+                      breaks=paste0("Batch ", 1:6)) +
+    labs(title = "Proportion of detected genes") + 
+    theme(axis.text.x = element_blank())
+
+subIDs <- (pdPatel$tumorName == "MGH26")
+BatchSub = factor(pdPatel$runID[subIDs])
+levels(BatchSub) <- c("Batch 5", "Batch 6")
+PDGSub <- PDG[subIDs]
+
+s <- svd(ePatel[,subIDs] - rowMeans(ePatel[,subIDs]))
+pcVar <- c(s$d^2 / sum(s$d^2))[1:3]
+scores.sub <- data.frame(BatchSub, PDGSub, s$v[,1:3])
+
+PC1.2.tumMGH26 <- ggplot(scores.sub, aes(x = X1, y = X2, colour = BatchSub)) + 
+    geom_point(size = 4) + 
+    xlab(paste0("Principal Component 1 (", round(pcVar[1],2)*100, "%)")) + 
+    ylab(paste0("Principal Component 2 (", round(pcVar[2],2)*100, "%)")) +  
+    scale_colour_manual(values = colRun[c(5,6)]) +
+    labs(title = "Only Biological Group 5") 
+
+
+p1 <- plot_grid(PC1.2.byTumor, PC1.2.byBatch, PC1.2.tumMGH26, 
+          p.boxplot, cols = 2, 
+          labels = c("A", "B", "C", "D"), label_size = 20)
+p1 
+
+# pdf(paste0(working_path, "scBatchFig3.pdf"), width = 12, height = 8)
+# print(p1)
+# dev.off()
+
+pout <- ggplot(scores.sub, aes(x = BatchSub, y = PDGSub, fill = BatchSub)) + 
+    geom_boxplot() + 
+    ylab("Proportion of detected genes") +  
+    scale_fill_manual(values = colRun[c(5,6)]) +
+    labs(title = "Patel et al. (2014) - Cells from the same\nbiological group (Tumor 5) processed in two batches") + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20), 
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15))
+pout
+
+# pdf(paste0(working_path, "scBatchSuppFig-2.pdf"), width = 12, height = 10)
+# print(p1)
+# dev.off()
+
+```
+
+# Figure 4 
+```{r, fig.width=16, fig.height=10}
+zz <- levels(pdDeng$time)
+pdDeng$bin <- ifelse(pdDeng$time %in% zz[1:2], "Bin A", 
+            ifelse(pdDeng$time %in% zz[3:4], "Bin B", 
+                   ifelse(pdDeng$time %in% zz[5:7], "Bin C", "Bin D")))
+
+dat = data.frame("Proportion" = c(pdTrapnell$PDG, pdShalek$PDG, 
+                                  pdTreutlein$PDG, pdDeng$PDG[pdDeng$bin == "Bin C"], 
+                                  pdDeng$PDG[pdDeng$bin == "Bin D"]), 
+                 "Median" = c(apply(eTrapnell, 2, function(z){ median(z[z>0])}), 
+                              apply(eShalek, 2, function(z){ median(z[z>0])}), 
+                              apply(eTreutlein, 2, function(z){ median(z[z>0])}), 
+                              apply(eDeng[, pdDeng$bin == "Bin C"], 2, function(z){ median(z[z>0])}), 
+                              apply(eDeng[, pdDeng$bin == "Bin D"], 2, function(z){ median(z[z>0])})),
+                 "Study" = factor(c(rep("Trapnell", nrow(pdTrapnell)), 
+                             rep("Shalek", nrow(pdShalek)), 
+                             rep("Treutlein", nrow(pdTreutlein)), 
+                             rep("Deng C", nrow(pdDeng[pdDeng$bin == "Bin C", ])),
+                             rep("Deng D", nrow(pdDeng[pdDeng$bin == "Bin D", ]))),
+                            levels = c("Trapnell", "Shalek", "Treutlein", 
+                                       "Deng C", "Deng D")))
+p.Trapnell <- dat %>% filter(Study == "Trapnell") %>% ggplot(aes(x = Proportion, y = Median)) +
+    geom_point() + 
+    stat_smooth(se = FALSE, degree = 1, span = 0.75, size = 2) +
+    xlab("Proportion of detected genes") + 
+    ylab("Median expression (log2)") + 
+    labs(title = "Trapnell et al., 2014") + 
+    theme(plot.title = element_text(size =20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size =20))
+
+p.Shalek <- dat %>% filter(Study == "Shalek") %>% ggplot(aes(x = Proportion, y = Median)) +
+    geom_point() + 
+    stat_smooth(se = FALSE, degree = 1, span = 0.75, size = 2) +
+    xlab("Proportion of detected genes") + 
+    ylab("Median expression (log2)") + 
+    labs(title = "Shalek et al., 2014") + 
+    theme(plot.title = element_text(size =20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size =20))
+
+p.Treutlein <- dat %>% filter(Study == "Treutlein") %>% ggplot(aes(x = Proportion, y = Median)) +
+    geom_point() + 
+    stat_smooth(se = FALSE, degree = 1, span = 0.75, size = 2) +
+    xlab("Proportion of detected genes") + 
+    ylab("Median expression (log2)") + 
+    labs(title = "Treutlein et al., 2014") + 
+    theme(plot.title = element_text(size =20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size =20))
+
+p.Deng.C <- dat %>% filter(Study == "Deng C") %>% ggplot(aes(x = Proportion, y = Median)) +
+    geom_point() + 
+    stat_smooth(se = FALSE, degree = 1, span = 0.75, size = 2) +
+    xlab("Proportion of detected genes") + 
+    ylab("Median expression (log2)") + 
+    labs(title = "Deng et al., 2014 (Group C)") + 
+    theme(plot.title = element_text(size =20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size =20))
+
+p.Deng.D <- dat %>% filter(Study == "Deng D") %>% ggplot(aes(x = Proportion, y = Median)) +
+    geom_point() + 
+    stat_smooth(se = FALSE, degree = 1, span = 0.75, size = 2) +
+    xlab("Proportion of detected genes") + 
+    ylab("Median expression (log2)") + 
+    labs(title = "Deng et al., 2014 (Group D)") + 
+    theme(plot.title = element_text(size =20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size =20))
+
+p1 <- plot_grid(p.Trapnell, p.Shalek, p.Treutlein, p.Deng.C, p.Deng.D, ncol = 3, 
+          labels = LETTERS[1:5], label_size = 25)
+p1 
+
+# pdf(paste0(working_path, "scBatchFig4.pdf"), width = 16, height = 10)
+# print(p1)
+# dev.off()
+
+```
+
+
+### Supp Figure 1 - Deng groups A and B comparing proportion of detected genes and PC1
+```{r, fig.width=6, fig.height=10}
+##### Figure 1A
+zz <- levels(pdDeng$time)
+pdDeng$bin <- ifelse(pdDeng$time %in% zz[1:2], "Bin A", 
+            ifelse(pdDeng$time %in% zz[3:4], "Bin B", 
+                   ifelse(pdDeng$time %in% zz[5:7], "Bin C", "Bin D")))
+
+dat <- sweep(eDeng[, pdDeng$bin == "Bin A"], 1, rowMeans(eDeng[, pdDeng$bin == "Bin A"]), FUN = "-")
+s <- svd(dat)
+pcVar <- c(s$d^2 / sum(s$d^2))[1:3]
+scores <- data.frame(pdDeng[pdDeng$bin == "Bin A", ], s$v[, 1:3])
+
+PC1.Deng.A <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 3, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pcVar[1],2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Deng et al., 2014 (Group A) (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+
+dat <- sweep(eDeng[, pdDeng$bin %in% c("Bin B")], 1, 
+             rowMeans(eDeng[, pdDeng$bin == c("Bin B")]), FUN = "-")
+s <- svd(dat)
+pcVar <- c(s$d^2 / sum(s$d^2))[1:3]
+scores <- data.frame(pdDeng[pdDeng$bin %in% c("Bin B"), ], s$v[, 1:3])
+
+PC1.Deng.B <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 3, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pcVar[1],2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Deng et al., 2014 (Group B) (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+
+p1 <- plot_grid(PC1.Deng.A, PC1.Deng.B, labels = LETTERS[1:2],
+                label_size = 20, ncol = 1)
+p1
+
+# pdf(paste0(working_path, "scBatchSuppFig-1.pdf"), width = 10, height = 15)
+# print(p1)
+# dev.off()
+
+```
+
+
+### Supp Figure 3 - Boxplots of Treutlein 
+```{r, fig.width = 12, fig.height = 10}
+colTum <- brewer.pal(8, "Dark2")
+colRun <- brewer.pal(9, "Set1")[c(1:5, 8, 9)]
+
+scores <- data.frame(pdTreutlein, "Fraction" = pdTreutlein$PDG,
+                     "Batch" = paste(pdTreutlein$runID, pdTreutlein$fcLane, sep = "_"),
+                      s$v[, 1:5])
+levels(scores$Batch) <- c("Batch 4", "Batch 5", "Batch 6", 
+                         "Batch 1", "Batch 2", "Batch 7", "Batch 3")
+scores$Batch <- factor(scores$Batch, levels = levels(scores$Batch)[c(4,5,7,1:3,6)])
+scores = scores %>% filter(day %in% "ED18.5")
+
+p.box.batch <- ggplot(scores, aes(x = Batch, y = Fraction, fill = Batch)) + 
+    geom_boxplot() + xlab(" ") + ylab(" ") + 
+    labs(title = "Treutlein et al. (2014) - Cells from the same \nbiological group (ED18.5) processed in three batches") +
+    ylab("Proportion of detected genes") + #  ylim(0.05, 0.25) + 
+    scale_fill_manual(values = colRun) +    
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20), 
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15))
+
+p.box.batch
+
+# pdf(paste0(working_path, "scBatchSuppFig-3.pdf"), width = 12, height = 10)
+# print(p.box.batch)
+# dev.off()
+
+```
+
+
+### Supp Figure 4 - Boxplots of Deng 
+```{r, fig.width=18, fig.height=22}
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length=n+1)
+  hcl(h=hues, l=65, c=100)[1:n]
+}
+
+zz <- levels(pdDeng$time)
+pdDeng$bin <- ifelse(pdDeng$time %in% zz[1:2], "Bin A", 
+            ifelse(pdDeng$time %in% zz[3:4], "Bin B", 
+                   ifelse(pdDeng$time %in% zz[5:7], "Bin C", "Bin D")))
+
+scores <- data.frame(pdDeng, s$v[, 1:3])
+
+box.A.left <- scores %>% filter(bin == "Bin A") %>% ggplot(aes(x = time, y = PDG, fill = runID)) + 
+    geom_boxplot() + xlab(" ") + ylab(" ") + 
+    labs(title = "Deng et al. (2014) - Group A")  + 
+    ylab("Proportion of detected genes") + 
+        theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          axis.title = element_text(size = 20), 
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15)) + 
+    geom_vline(xintercept=c(1.5))
+
+box.A.right <- scores %>% filter(bin == "Bin A") %>% 
+    ggplot(aes(x = runID, y = PDG, fill = time)) + 
+    geom_boxplot() + xlab(" ") + ylab(" ") + 
+    labs(title = "Deng et al. (2014) - Group A")  + 
+    ylab("Proportion of detected genes") + 
+        theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          axis.title = element_text(size = 20), 
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15)) + 
+    geom_vline(xintercept=c(1.5))
+
+sub1 <- scores %>% filter(bin == "Bin B") 
+sub <- scores %>% filter(bin == "Bin B", time == "Late 2-cell", runID != "Run0084") 
+cols = gg_color_hue(4)
+box.B.left <- ggplot(sub1, aes(x = time, y = PDG)) + 
+    geom_boxplot(aes(fill = runID)) + xlab(" ") + ylab(" ") + 
+    labs(title = "Deng et al. (2014) - Group B")  + 
+    ylab("Proportion of detected genes") + 
+        theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          axis.title = element_text(size = 20), 
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15)) + 
+    geom_vline(xintercept=c(1.5)) + 
+    geom_point(aes(x = 1.75, y = sub[2,]$PDG), color = cols[2], size = 5) + 
+    geom_point(aes(x = 2.25, y = sub[1,]$PDG), color = cols[4], size = 5) 
+
+sub1 <- scores %>% filter(bin == "Bin B") 
+sub <- scores %>% filter(bin == "Bin B", time == "Late 2-cell", runID %in% c("Run0083", "Run0085"))
+cols = gg_color_hue(2)
+box.B.right <- ggplot(sub1, aes(x = runID, y = PDG)) + 
+    geom_boxplot(aes(fill = time)) + xlab(" ") + ylab(" ") + 
+    labs(title = "Deng et al. (2014) - Group B")  + 
+    ylab("Proportion of detected genes") + 
+        theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          axis.title = element_text(size = 20), 
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15)) + 
+    geom_vline(xintercept=c(1.5, 2.5, 3.5)) + 
+    geom_point(aes(x = 2.20, y = sub[2,]$PDG), color = cols[2], size = 5) + 
+    geom_point(aes(x = 4, y = sub[1,]$PDG), color = cols[2], size = 5) 
+
+
+box.C.left <- scores %>% filter(bin == "Bin C") %>% 
+    ggplot(aes(x = time, y = PDG, fill = runID)) + 
+    geom_boxplot() + xlab(" ") + ylab(" ") + 
+    labs(title = "Deng et al. (2014) - Group C")  + 
+    ylab("Proportion of detected genes") + 
+        theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          axis.title = element_text(size = 20),
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15)) + ylim(0.30, 0.45) + 
+    geom_vline(xintercept=c(1.5, 2.5))
+
+
+box.C.right <- scores %>% filter(bin == "Bin C") %>% 
+    ggplot(aes(x = runID, y = PDG, fill = time)) + 
+    geom_boxplot() + xlab(" ") + ylab(" ") + 
+    labs(title = "Deng et al. (2014) - Group C")  + 
+    ylab("Proportion of detected genes") + 
+        theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          axis.title = element_text(size = 20), 
+          axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+          legend.text = element_text(size = 15),
+          legend.title = element_text(size = 15)) + ylim(0.30, 0.45) + 
+    geom_vline(xintercept=c(1.5, 2.5, 3.5, 4.5, 5.5, 6.5))
+
+
+box.D.left <- scores %>% filter(bin == "Bin D") %>% 
+    ggplot(aes(x = time, y = PDG, fill = runID)) + 
+    geom_boxplot() + xlab(" ") + ylab(" ") + 
+    labs(title = "Deng et al. (2014) - Group D")  + 
+    ylab("Proportion of detected genes") + 
+        theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          axis.title = element_text(size = 20),
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15)) + ylim(0.25, 0.45) + 
+    geom_vline(xintercept=c(1.5, 2.5))
+
+
+box.D.right <- scores %>% filter(bin == "Bin D") %>% 
+    ggplot(aes(x = runID, y = PDG, fill = time)) + 
+    geom_boxplot() + xlab(" ") + ylab(" ") + 
+    labs(title = "Deng et al. (2014) - Group D")  + 
+    ylab("Proportion of detected genes") + 
+        theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          axis.title = element_text(size = 20), 
+          axis.text.x = element_text(size = 15),
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15)) + ylim(0.25, 0.45) + 
+    geom_vline(xintercept=c(1.5, 2.5, 3.5))
+
+
+p1 <- plot_grid(box.A.left, box.A.right, 
+                box.B.left, box.B.right,
+                box.C.left, box.C.right, 
+                box.D.left, box.D.right, ncol = 2, 
+                labels =LETTERS[1:8], label_size = 20)
+p1 
+
+# pdf(paste0(working_path, "scBatchSuppFig-4.pdf"), width = 18, height = 22)
+# print(p1)
+# dev.off()
+
+```
+
+
+### Supp Figure 5 - Boxplots of Trapnell & Shalek 
+```{r, fig.width=10, fig.height=14}
+colTum <- brewer.pal(8, "Dark2")
+colRun <- brewer.pal(9, "Set1")
+
+scores <- data.frame(pdTrapnell, "Fraction" = pdTrapnell$PDG,
+                     "Batch" = paste(pdTrapnell$runID, pdTrapnell$fcLane, sep = "_"))
+levels(scores$Batch) <- c("Batch 2 (24h)", "Batch 1 (0h)", 
+                         "Batch 3 (48h)", "Batch 4 (72h)")
+scores$Batch <- factor(scores$Batch, levels = levels(scores$Batch)[c(2,1,3,4)])
+scores$hour <- factor(scores$hour, levels = levels(scores$hour)[c(2,3,4,1)])
+levels(scores$hour) <- (c("0h", "24h", "48h", "72h"))
+
+p.box.Trapnell <- ggplot(scores, aes(x = hour, y = Fraction, fill = Batch)) + 
+    geom_boxplot() + xlab(" ") + ylab(" ") + 
+    labs(title = "Trapnell et al. (2014) - Biological groups\n completely confounded with processed batches of cells") +
+    ylab("Proportion of detected genes") + 
+    scale_fill_manual(values = colRun) +    
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20), 
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15))
+
+
+scores <- data.frame(pdShalek, "Fraction" = pdShalek$PDG,
+                     "Batch" = paste(pdShalek$runID, pdShalek$fcLane, sep = "_"))
+levels(scores$Batch) <- c("Batch 1 (1h)", "Batch 2 (2h)", 
+                         "Batch 3 (4h)", "Batch 4 (6h)")
+p.box.Shalek <- ggplot(scores, aes(x = time, y = Fraction, fill = Batch)) + 
+    geom_boxplot() + xlab(" ") + ylab(" ") + 
+    labs(title = "Shalek et al. (2014) - Biological groups\n completely confounded with processed batches of cells") +
+    ylab("Proportion of detected genes") + 
+    scale_fill_manual(values = colRun) +    
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20), 
+          legend.text = element_text(size = 15), 
+          legend.title = element_text(size = 15))
+
+p1 <- plot_grid(p.box.Trapnell, p.box.Shalek, 
+                ncol = 1, labels = LETTERS[1:2], label_size = 20)
+
+p1 
+
+# pdf(paste0(working_path, "scBatchSuppFig-5.pdf"), width = 10, height = 15)
+# print(p1)
+# dev.off()
+
+```
+
+
+
+### Supp Figure 6 - remove cells $<$ 0.05
+```{r, fig.width = 12, fig.height = 15}
+
+
+##### Figure 6A: Patel et al. (2014)
+library(scRNASeqHumanPatelGlioblastoma)
+data("glioHumanCount")
+
+eset <- assay(glioHumanCount)
+pd <- as.data.frame(colData(glioHumanCount))
+pd$tumorName <- as.factor(as.character(pd$tumorName))
+
+pd$RPM <- colSums(eset)/1e6
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+
+subIDs <- (pd$sampleType == "SC" & pd$includeSample == TRUE)
+pdPatelCounts <- pd[subIDs,]
+esetPatel <- eset[, subIDs]
+
+# raw
+lcountsPatel <- log2(esetPatel + 1)
+
+
+# Figure 6B: Trapnell et al., 2014
+library(scRNASeqHumanTrapnellMyoblast)
+data("myoblastHumanCount")
+
+eset <- assay(myoblastHumanCount)
+pd <- as.data.frame(colData(myoblastHumanCount))
+
+# # remove control cells, debris cells, and wells with more than 1 cell
+pd <- pd[pd$characteristics_ch1.3 == "control well: FALSE" & 
+                      pd$characteristics_ch1.2 == "debris: FALSE" & 
+                      pd$characteristics_ch1.4 == "cells in well: 1", ]
+eset <- eset[, match(rownames(pd), colnames(eset))]
+
+# calculate PDG
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pd$RPM <- colSums(eset) / 1e6
+
+esetSubTrapnell <- eset
+pdTrapnellCounts <- pd
+
+# raw
+lcountsTrapnell <- log2(esetSubTrapnell + 1)
+
+
+#####  Figure 6C: Shalek et al., 2014
+library(scRNASeqMouseShalekDendritic)
+data("dendriticMouseCount")
+
+eset <- assay(dendriticMouseCount)
+pd <- as.data.frame(colData(dendriticMouseCount))
+
+eset <- eset[, pd$rep == FALSE & pd$onChip == FALSE ]
+pd <- pd[pd$rep == FALSE & pd$onChip == FALSE, ]
+
+eset <- eset[, match( colnames(eShalek),  rownames(pd))]
+pd <- pd[match( colnames(eShalek), rownames(pd)), ]
+
+pd$RPM <- colSums(eset)/1e6
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+
+esetSubShalek <- eset
+pdShalekCounts <- pd
+
+# raw
+lcountsShalek <- log2(esetSubShalek + 1)
+
+
+
+# Figure 6D: Treutlein et al., 2014
+library(scRNASeqMouseTreutleinLineage)
+data("lungMouseCount")
+
+eset <- assay(lungMouseCount)
+pd <- as.data.frame(colData(lungMouseCount))
+
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pd$RPM <- colSums(eset) / 1e6
+
+levels(pd$characteristics_ch1.2) <- list("ED14.5" = "age: Embryonic day 14.5",
+                                              "ED16.5" = "age: Embryonic day 16.5",
+                        "ED18.5" ="age: Embryonic day 18.5", "PND107" = "age: post natal day 107")
+pd$day <- pd$characteristics_ch1.2
+pd$sampleType <- factor(ifelse(grepl("bulk", pd$description), "bulk",
+                                ifelse(grepl("no cell control", pd$description),
+                                    "nocell", "SC")), levels=c("SC", "bulk", "nocell"))
+eset <- eset[, pd$sampleType == "SC"]
+pd <- pd[pd$sampleType == "SC", ]
+
+esetSubTreutlein <- eset
+pdTreutleinCounts <- pd
+
+# raw
+lcountsTreutlein <- log2(esetSubTreutlein + 1)
+
+
+
+
+# Figure 6E: Deng et al., 2014
+library(scRNASeqMouseDengMonoAllelic)
+data("embryoMouseCount")
+
+eset <- assay(embryoMouseCount)
+pd <- as.data.frame(colData(embryoMouseCount))
+
+# remove liver and fibroblast cells
+keepCells <- !grepl("Liver", pd$source_name_ch1) &
+    !grepl("fibroblast", pd$source_name_ch1) &
+    !grepl("strain: C57BL/6J", pd$characteristics_ch1)
+
+eset <- eset[, keepCells]
+pd <- pd[keepCells, ]
+
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pd$RPM <- colSums(eset) / 1e6
+
+esetSubDeng <- eset
+pdDengCounts <- pd
+
+# raw
+lcountsDeng <- log2(esetSubDeng + 1)
+
+
+
+x <- data.frame("Proportion" = c(colMeans(esetPatel>2), colMeans(esetSubTrapnell>2), 
+                colMeans(esetSubShalek>2), colMeans(esetSubTreutlein>2), 
+                colMeans(esetSubDeng>2)), 
+           "Median" = c(apply(esetPatel,2,function(x) median(x[x>2])), 
+                        apply(esetSubTrapnell,2,function(x) median(x[x>2])), 
+                        apply(esetSubShalek,2,function(x) median(x[x>2])), 
+                        apply(esetSubTreutlein,2,function(x) median(x[x>2])), 
+                        apply(esetSubDeng,2,function(x) median(x[x>2]))), 
+           "Study" = c(rep("Patel", ncol(esetPatel)), 
+                       rep("Trapnell", ncol(esetSubTrapnell)), 
+                       rep("Shalek", ncol(esetSubShalek)), 
+                       rep("Treutlein", ncol(esetSubTreutlein)), 
+                       rep("Deng", ncol(esetSubDeng))))
+x$Study <- factor(x$Study, levels = c("Patel", "Trapnell", "Shalek", 
+                                      "Treutlein", "Deng"))
+
+p1 <- ggplot(x, aes(x = Proportion, y = Median)) + geom_point(size = 2) + 
+    facet_wrap(~Study, ncol = 2, scales= "free") + 
+    geom_vline(aes(xintercept = 0.05), colour = "red") + 
+    xlab("Proportion of detected genes") + 
+    ylab("Median expression") + 
+    theme(plot.title = element_text(size = 15),
+          axis.text = element_text(size = 15), 
+          axis.title = element_text(size = 15))
+p1 
+
+# pdf(paste0(working_path, "scBatchSuppFig-6.pdf"), width = 12, height = 15)
+# print(p1)
+# dev.off()
+
+```
+
+
+### Supp Figure 7 & 8 - detection rated adjusted & All the quantiles
+
+```{r, fig.width=12, fig.height=16}
+##### Figure 7A: Patel et al. (2014)
+library(scRNASeqHumanPatelGlioblastoma)
+data("glioHumanCount")
+
+eset <- assay(glioHumanCount)
+pd <- as.data.frame(colData(glioHumanCount))
+pd$tumorName <- as.factor(as.character(pd$tumorName))
+
+pd$RPM <- colSums(eset)/1e6
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+
+subIDs <- (pd$sampleType == "SC" & pd$includeSample == TRUE) 
+pdSub <- pd[subIDs,]
+esetSub <- eset[, subIDs]
+
+esetSub <- esetSub[,order(pdSub$PDG)] 
+pdSub <- pdSub[order(pdSub$PDG), ]
+
+
+# raw
+lcounts <- log2(esetSub + 1)
+
+# adjusting for library size
+tmp = pdSub$RPM 
+rpm <- sweep(esetSub, 2, tmp, FUN = "/")
+lrpm <- log2(rpm + 1)
+
+pdSub$keepme2 <- pdSub$PDG > 0.05
+datbig <- pdSub %>% filter(keepme2 == TRUE)
+datsmall <- pdSub %>% filter(keepme2 == FALSE)
+
+
+# detection rated adjusted
+tmp = pdSub$RPM * (median(pdSub$PDG) / (pdSub$PDG))
+rpm.corr <- sweep(esetSub, 2, tmp, FUN = "/")
+lrpmcorrPatel <- log2(rpm.corr + 1)
+
+out.raw = apply(lrpm, 2, function(x) median(x[x>=1]))
+out.corr = apply(lrpmcorrPatel, 2, function(x) median(x[x>=1]))
+
+dat = data.frame("PDG" = pdSub$PDG, "CPM" = out.raw, "CPM.corr" = out.corr)
+
+dat1 = data.frame("PDG" = rep(pdSub$PDG, 2), "keepme2" = rep(pdSub$keepme2, 2), melt(dat[,-1]))
+colnames(dat1)[3] <- "Normalization"
+levels(dat1$Normalization) <- c("Counts per million", "Detection rate adjusted CPM")
+dataCPM = dat1 %>% filter(Normalization == "Counts per million") 
+databig = dat1 %>% filter(Normalization == "Detection rate adjusted CPM", keepme2 == TRUE) 
+datasmall = dat1 %>% filter(Normalization == "Detection rate adjusted CPM", keepme2 == FALSE) 
+
+medExprs.Fig7A <- ggplot(dat1, aes(x = PDG, y = value, colour = Normalization)) +
+    geom_point(size = 2) + 
+    geom_point(data = datasmall, aes(x = PDG, y = value), color = "gray") + 
+    stat_smooth(data = dataCPM, se = FALSE, degree = 1, span = 1, size = 2, family="symmetric") +
+    stat_smooth(data = databig, se = FALSE, degree = 1, span = 1, size = 2, family="symmetric") +
+    xlab("Proportion of detected genes") +
+    ylab("Median expression (log2)")  + 
+    labs(title = "Patel et al., 2014") + 
+    theme(legend.position=c(0.5, 0.8), 
+          plot.title = element_text(size =20),
+          legend.text = element_text(size = 20), 
+          legend.title = element_text(size = 20), 
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size =20), 
+          legend.position = "none")
+
+### Supp Fig 8 Patel (row 1)
+dat <- tidyQuants(lcounts, PDGval = pdSub$PDG, qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Patel.lcounts <- ggplot(dat, aes(x = PDG, y = value, colour = Quantile)) +
+    stat_smooth(se = FALSE, span = 0.5, degree = 1, size = 2) + geom_point(size = 2) + 
+    xlab("Proportion of detected genes") + ylim(0, 16.1) + 
+    ylab("Expression (log2)") + 
+    labs(title = "Patel et al., 2014 (raw counts)")
+
+
+dat <- tidyQuants(lrpm, PDGval = pdSub$PDG, qRange = c(0.01, 0.25, 0.5, 0.75, 0.99)) # 
+p.Patel.lrpm <- ggplot(dat, aes(x = PDG, y = value, colour = Quantile)) +
+    stat_smooth(se = FALSE, span = 0.5, degree = 1, size = 2) + geom_point(size = 2) + 
+    xlab("Proportion of detected genes") + ylim(0, 16.1) + 
+    ylab("Expression (log2)") + 
+    labs(title = "Patel et al., 2014 (CPM)")
+
+
+datkeep <- tidyQuants(lrpmcorrPatel[, pdSub$keepme2], PDGval = pdSub$PDG[pdSub$keepme2], 
+                  qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Patel.lrpm.corr <- ggplot(data = datkeep, aes(x = PDG, y = value)) + 
+    geom_point(data = datkeep, aes(colour = Quantile), size = 2) + 
+    # geom_point(data = datnokeep, aes(x = PDG, y = value), color = "gray") + 
+    stat_smooth(method = "loess", data = datkeep, aes(color = Quantile), se = FALSE, span = 0.5, 
+                degree = 1, size = 2, family = "symmetric") + 
+    xlab("Proportion of detected genes") +  ylim(0, 16.1) +
+    ylab("Expression (log2)") + 
+    labs(title = "Patel et al., 2014 (Detection rate adjusted CPM)")
+
+
+
+# Figure 7B: Trapnell et al., 2014
+library(scRNASeqHumanTrapnellMyoblast)
+data("myoblastHumanCount")
+
+eset <- assay(myoblastHumanCount)
+pd <- as.data.frame(colData(myoblastHumanCount))
+
+# # remove control cells, debris cells, and wells with more than 1 cell
+pd <- pd[pd$characteristics_ch1.3 == "control well: FALSE" & 
+                      pd$characteristics_ch1.2 == "debris: FALSE" & 
+                      pd$characteristics_ch1.4 == "cells in well: 1", ]
+eset <- eset[, match(rownames(pd), colnames(eset))]
+
+# calculate PDG
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pd$RPM <- colSums(eset) / 1e6
+
+esetSub <- eset[,order(pd$PDG)] 
+pdSub <- pd[order(pd$PDG), ]
+
+# raw
+lcounts <- log2(esetSub + 1)
+
+# adjusting for library size
+tmp = pdSub$RPM 
+rpm <- sweep(esetSub, 2, tmp, FUN = "/")
+lrpm <- log2(rpm + 1)
+
+pdSub$keepme2 <- pdSub$PDG > 0.05
+datbig <- pdSub %>% filter(keepme2 == TRUE)
+datsmall <- pdSub %>% filter(keepme2 == FALSE)
+
+# detection rated adjusted
+tmp = pdSub$RPM * (median(pdSub$PDG) / (pdSub$PDG))
+rpm.corr <- sweep(esetSub, 2, tmp, FUN = "/")
+lrpmcorrTrapnell <- log2(rpm.corr + 1)
+
+out.raw = apply(lrpm, 2, function(x) median(x[x>=1]))
+out.corr = apply(lrpmcorrTrapnell, 2, function(x) median(x[x>=1]))
+
+dat = data.frame("PDG" = pdSub$PDG, "CPM" = out.raw, "CPM.corr" = out.corr)
+
+dat1 = data.frame("PDG" = rep(pdSub$PDG, 2), "keepme2" = rep(pdSub$keepme2, 2), melt(dat[,-1]))
+colnames(dat1)[3] <- "Normalization"
+levels(dat1$Normalization) <- c("Counts per million", "Detection rate adjusted CPM")
+dataCPM = dat1 %>% filter(Normalization == "Counts per million") 
+databig = dat1 %>% filter(Normalization == "Detection rate adjusted CPM", keepme2 == TRUE) 
+datasmall = dat1 %>% filter(Normalization == "Detection rate adjusted CPM", keepme2 == FALSE) 
+
+medExprs.Fig7B <- ggplot(data = dat1, aes(x = PDG, y = value, colour = Normalization)) +
+    geom_point(size = 2) + 
+    geom_point(data = datasmall, aes(x = PDG, y = value), color = "gray") + 
+    stat_smooth(data = dataCPM, se = FALSE, degree = 1, span = 1, size = 2) + 
+    stat_smooth(data = databig, se = FALSE, degree = 1, span = 1, size = 2) + 
+    xlab("Proportion of detected genes") +
+    ylab("Median expression (log2)")  + 
+    labs(title = "Trapnell et al., 2014") + 
+    theme(legend.position=c(0.5, 0.8), 
+          plot.title = element_text(size =20),
+          legend.text = element_text(size = 20), 
+          legend.title = element_text(size = 20), 
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size =20), 
+          legend.position = "none")
+
+### Supp Fig 8 Trapnell (row 2)
+dat <- tidyQuants(lcounts, PDGval = pdSub$PDG, qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Trapnell.lcounts <- ggplot(dat, aes(x = PDG, y = value, colour = Quantile)) +
+    stat_smooth(se = FALSE, span = 1, degree = 1, size = 2) + geom_point(size = 2) + 
+    xlab("Proportion of detected genes") + ylim(0, 16.1) + 
+    ylab("Expression (log2)") + 
+    labs(title = "Trapnell et al., 2014 (raw counts)")
+
+dat <- tidyQuants(lrpm, PDGval = pdSub$PDG, qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Trapnell.lrpm <- ggplot(dat, aes(x = PDG, y = value, colour = Quantile)) +
+    stat_smooth(se = FALSE, span = 1 , degree = 1, size = 2) + geom_point(size = 2) + 
+    xlab("Proportion of detected genes") + ylim(0, 16.1) + 
+    ylab("Expression (log2)") + 
+    labs(title = "Trapnell et al., 2014 (CPM)")
+
+datkeep <- tidyQuants(lrpmcorrTrapnell[, pdSub$keepme2], PDGval = pdSub$PDG[pdSub$keepme2], 
+                  qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+datnokeep <- tidyQuants(lrpmcorrTrapnell[, !pdSub$keepme2], PDGval = pdSub$PDG[!pdSub$keepme2], 
+                  qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Trapnell.lrpm.corr <- ggplot(data = datkeep, aes(x = PDG, y = value)) + 
+    geom_point(data = datkeep, aes(colour = Quantile), size = 2) + 
+    geom_point(data = datnokeep, aes(x = PDG, y = value), color = "gray") + 
+    stat_smooth(method = "loess", data = datkeep, aes(color = Quantile), se = FALSE, span = 1, 
+                degree = 1, size = 2) + 
+    xlab("Proportion of detected genes") +  ylim(0, 16.1) +
+    ylab("Expression (log2)") + 
+    labs(title = "Trapnell et al., 2014 (Detection rate adjusted CPM)")
+
+
+
+# Figure 7C: Treutlein et al., 2014
+library(scRNASeqMouseTreutleinLineage)
+data("lungMouseCount")
+
+eset <- assay(lungMouseCount)
+pd <- as.data.frame(colData(lungMouseCount))
+
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pd$RPM <- colSums(eset) / 1e6
+
+levels(pd$characteristics_ch1.2) <- list("ED14.5" = "age: Embryonic day 14.5",
+                                              "ED16.5" = "age: Embryonic day 16.5",
+                        "ED18.5" ="age: Embryonic day 18.5", "PND107" = "age: post natal day 107")
+pd$day <- pd$characteristics_ch1.2
+pd$sampleType <- factor(ifelse(grepl("bulk", pd$description), "bulk",
+                                ifelse(grepl("no cell control", pd$description),
+                                    "nocell", "SC")), levels=c("SC", "bulk", "nocell"))
+eset <- eset[, pd$sampleType == "SC"]
+pd <- pd[pd$sampleType == "SC", ]
+
+esetSub <- eset[,order(pd$PDG)] 
+pdSub <- pd[order(pd$PDG), ]
+
+# raw
+lcounts <- log2(esetSub + 1)
+
+# adjusting for library size
+tmp = pdSub$RPM 
+rpm <- sweep(esetSub, 2, tmp, FUN = "/")
+lrpm <- log2(rpm + 1)
+
+pdSub$keepme2 <- pdSub$PDG > 0.05
+datbig <- pdSub %>% filter(keepme2 == TRUE)
+datsmall <- pdSub %>% filter(keepme2 == FALSE)
+
+# detection rated adjusted
+tmp = pdSub$RPM * (median(pdSub$PDG) / (pdSub$PDG))#  + (1-max(pdSub$PDG))))
+rpm.corr <- sweep(esetSub, 2, tmp, FUN = "/")
+lrpmcorrTreutlein <- log2(rpm.corr + 1)
+
+out.raw = apply(lrpm, 2, function(x) median(x[x>=1]))
+out.corr = apply(lrpmcorrTreutlein, 2, function(x) median(x[x>=1]))
+
+dat = data.frame("PDG" = pdSub$PDG, "CPM" = out.raw, "CPM.corr" = out.corr)
+dat1 = data.frame("PDG" = rep(pdSub$PDG, 2), "keepme2" = rep(pdSub$keepme2, 2), melt(dat[,-1]))
+colnames(dat1)[3] <- "Normalization"
+levels(dat1$Normalization) <- c("Counts per million", "Detection rate adjusted CPM")
+dataCPM = dat1 %>% filter(Normalization == "Counts per million") 
+databig = dat1 %>% filter(Normalization == "Detection rate adjusted CPM", keepme2 == TRUE) 
+datasmall = dat1 %>% filter(Normalization == "Detection rate adjusted CPM", keepme2 == FALSE) 
+
+medExprs.Fig7C <- ggplot(data = dat1, aes(x = PDG, y = value, colour = Normalization)) +
+    geom_point(size = 2) + 
+    geom_point(data = datasmall, aes(x = PDG, y = value), color = "gray") + 
+    stat_smooth(data = dataCPM, se = FALSE, degree = 1, span = 1, size = 2) +
+    stat_smooth(data = databig, se = FALSE, degree = 1, span = 1, size = 2) +
+    xlab("Proportion of detected genes") +
+    ylab("Median expression (log2)")  + 
+    labs(title = "Treutlien et al., 2014") + 
+    theme(legend.position=c(0.5, 0.8), 
+          plot.title = element_text(size =20),
+          legend.text = element_text(size = 20), 
+          legend.title = element_text(size = 20), 
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size =20), 
+          legend.position = "none")
+ 
+
+### Supp Fig 8 Treutlein (row 3)
+dat <- tidyQuants(lcounts, PDGval = pdSub$PDG, qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Treutlien.lcounts <- ggplot(dat, aes(x = PDG, y = value, colour = Quantile)) +
+    stat_smooth(se = FALSE, span = 1, degree = 1, size = 2) + geom_point(size = 2) + 
+    xlab("Proportion of detected genes") + ylim(0, 16.1) + 
+    ylab("Expression (log2)") + 
+    labs(title = "Treutlien et al., 2014 (raw counts)")
+
+dat <- tidyQuants(lrpm, PDGval = pdSub$PDG, qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Treutlien.lrpm <- ggplot(dat, aes(x = PDG, y = value, colour = Quantile)) +
+    stat_smooth(se = FALSE, span = 1, degree = 1, size = 2) + geom_point(size = 2) + 
+    xlab("Proportion of detected genes") + ylim(0, 16.1) + 
+    ylab("Expression (log2)") + 
+    labs(title = "Treutlien et al., 2014 (CPM)")
+
+datkeep <- tidyQuants(lrpmcorrTreutlein[, pdSub$keepme2], PDGval = pdSub$PDG[pdSub$keepme2], 
+                  qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+datnokeep <- tidyQuants(lrpmcorrTreutlein[, !pdSub$keepme2], PDGval = pdSub$PDG[!pdSub$keepme2], 
+                  qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+
+p.Treutlien.lrpm.corr <- ggplot(data = datkeep, aes(x = PDG, y = value)) + 
+    geom_point(data = datkeep, aes(colour = Quantile), size = 2) + 
+    geom_point(data = datnokeep, aes(x = PDG, y = value), color = "gray") + 
+    stat_smooth(method = "loess", data = datkeep, aes(color = Quantile), se = FALSE, span = 1, 
+                degree = 1, size = 2) + 
+    xlab("Proportion of detected genes") +  ylim(0, 16.1) +
+    ylab("Expression (log2)") + 
+    labs(title = "Treutlien et al., 2014 (Detection rate adjusted CPM)")
+
+
+
+
+
+
+
+# Figure 7D: Deng et al., 2014
+library(scRNASeqMouseDengMonoAllelic)
+data("embryoMouseCount")
+
+eset <- assay(embryoMouseCount)
+pd <- as.data.frame(colData(embryoMouseCount))
+
+# remove liver and fibroblast cells
+keepCells <- !grepl("Liver", pd$source_name_ch1) &
+    !grepl("fibroblast", pd$source_name_ch1) &
+    !grepl("strain: C57BL/6J", pd$characteristics_ch1)
+
+eset <- eset[, keepCells]
+pd <- pd[keepCells, ]
+
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pd$RPM <- colSums(eset) / 1e6
+
+esetSub <- eset[,order(pd$PDG)] 
+pdSub <- pd[order(pd$PDG), ]
+
+# raw
+lcounts <- log2(esetSub + 1)
+
+# adjusting for library size
+tmp = pdSub$RPM 
+rpm <- sweep(esetSub, 2, tmp, FUN = "/")
+lrpm <- log2(rpm + 1)
+
+pdSub$keepme2 <- pdSub$PDG > 0.05
+datbig <- pdSub %>% filter(keepme2 == TRUE)
+datsmall <- pdSub %>% filter(keepme2 == FALSE)
+
+# detection rated adjusted
+tmp = pdSub$RPM * (median(pdSub$PDG) / (pdSub$PDG))
+rpm.corr <- sweep(esetSub, 2, tmp, FUN = "/")
+lrpmcorrDeng <- log2(rpm.corr + 1)
+
+out.raw = apply(lrpm, 2, function(x) median(x[x>=1]))
+out.corr = apply(lrpmcorrDeng, 2, function(x) median(x[x>=1]))
+
+dat = data.frame("PDG" = pdSub$PDG, "CPM" = out.raw, "CPM.corr" = out.corr)
+dat1 = data.frame("PDG" = rep(pdSub$PDG, 2), "keepme2" = rep(pdSub$keepme2, 2), melt(dat[,-1]))
+colnames(dat1)[3] <- "Normalization"
+levels(dat1$Normalization) <- c("Counts per million", "Detection rate adjusted CPM")
+dataCPM = dat1 %>% filter(Normalization == "Counts per million") 
+databig = dat1 %>% filter(Normalization == "Detection rate adjusted CPM", keepme2 == TRUE) 
+datasmall = dat1 %>% filter(Normalization == "Detection rate adjusted CPM", keepme2 == FALSE) 
+
+medExprs.Fig7E <- ggplot(data = dat1, aes(x = PDG, y = value, colour = Normalization)) +
+    geom_point(size = 2) + 
+    geom_point(data = datasmall, aes(x = PDG, y = value), color = "gray") + 
+    stat_smooth(data = dataCPM, se = FALSE, degree = 1, span = 1, size = 2) +
+    stat_smooth(data = databig, se = FALSE, degree = 1, span = 1, size = 2) + 
+    xlab("Proportion of detected genes") +
+    ylab("Median expression (log2)")  + 
+    labs(title = "Deng et al., 2014") + 
+    theme(legend.position=c(0.5, 0.2), 
+          plot.title = element_text(size =20),
+          legend.text = element_text(size = 20), 
+          legend.title = element_text(size = 20), 
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size =20), 
+          legend.position = "none")
+
+
+### Supp Fig 8 Deng (row 4)
+dat <- tidyQuants(lcounts, PDGval = pdSub$PDG, qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Deng.lcounts <- ggplot(dat, aes(x = PDG, y = value, colour = Quantile)) +
+    stat_smooth(se = FALSE, span = 1, degree = 1, size = 2) + geom_point(size = 2) + 
+    xlab("Proportion of detected genes") + ylim(0, 16.1) + 
+    ylab("Expression (log2)") + 
+    labs(title = "Deng et al., 2014 (raw counts)")
+
+dat <- tidyQuants(lrpm, PDGval = pdSub$PDG, qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Deng.lrpm <- ggplot(dat, aes(x = PDG, y = value, colour = Quantile)) +
+    stat_smooth(se = FALSE, span = 1, degree = 1, size = 2) + geom_point(size = 2) + 
+    xlab("Proportion of detected genes") + ylim(0, 16.1) + 
+    ylab("Expression (log2)") + 
+    labs(title = "Deng et al., 2014 (CPM)")
+
+datkeep <- tidyQuants(lrpmcorrDeng[, pdSub$keepme2], PDGval = pdSub$PDG[pdSub$keepme2], 
+                  qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Deng.lrpm.corr <- ggplot(data = datkeep, aes(x = PDG, y = value)) + 
+    geom_point(data = datkeep, aes(colour = Quantile), size = 2) + 
+    # geom_point(data = datnokeep, aes(x = PDG, y = value), color = "gray") + 
+    stat_smooth(method = "loess", data = datkeep, aes(color = Quantile), se = FALSE, span = 1, 
+                degree = 1, size = 2) + 
+    xlab("Proportion of detected genes") +  ylim(0, 16.1) +
+    ylab("Expression (log2)") + 
+    labs(title = "Deng et al., 2014 (Detection rate adjusted CPM)")
+
+
+
+
+
+
+
+#####  Figure 4E: Shalek et al., 2014
+library(scRNASeqMouseShalekDendritic)
+data("dendriticMouseCount")
+
+eset <- assay(dendriticMouseCount)
+pd <- as.data.frame(colData(dendriticMouseCount))
+
+eset <- eset[, pd$rep == FALSE & pd$onChip == FALSE ]
+pd <- pd[pd$rep == FALSE & pd$onChip == FALSE, ]
+
+eset <- eset[, match( colnames(eShalek), rownames(pd) )]
+pd <- pd[match( colnames(eShalek),   rownames(pd) ), ]
+
+pd$RPM <- colSums(eset)/1e6
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+
+esetSub <- eset[,order(pd$PDG)] 
+pdSub <- pd[order(pd$PDG), ]
+
+# raw
+lcounts <- log2(esetSub + 1)
+
+# adjusting for library size
+tmp = pdSub$RPM 
+rpm <- sweep(esetSub, 2, tmp, FUN = "/")
+lrpm <- log2(rpm + 1)
+
+
+pdSub$keepme2 <- pdSub$PDG > 0.05
+datbig <- pdSub %>% filter(keepme2 == TRUE)
+datsmall <- pdSub %>% filter(keepme2 == FALSE)
+
+# detection rated adjusted
+tmp = pdSub$RPM * (median(pdSub$PDG) / (pdSub$PDG))#  + (1-max(pdSub$PDG))))
+rpm.corr <- sweep(esetSub, 2, tmp, FUN = "/")
+lrpmcorrShalek <- log2(rpm.corr + 1)
+
+out.raw = apply(lrpm, 2, function(x) median(x[x>=1]))
+out.corr = apply(lrpmcorrShalek, 2, function(x) median(x[x>=1]))
+
+dat = data.frame("PDG" = pdSub$PDG, "CPM" = out.raw, "CPM.corr" = out.corr)
+
+dat1 = data.frame("PDG" = rep(pdSub$PDG, 2), "keepme2" = rep(pdSub$keepme2, 2), melt(dat[,-1]))
+colnames(dat1)[3] <- "Normalization"
+levels(dat1$Normalization) <- c("Counts per million", "Detection rate adjusted CPM")
+dataCPM = dat1 %>% filter(Normalization == "Counts per million") 
+databig = dat1 %>% filter(Normalization == "Detection rate adjusted CPM", keepme2 == TRUE) 
+datasmall = dat1 %>% filter(Normalization == "Detection rate adjusted CPM", keepme2 == FALSE) 
+
+medExprs.Fig7D <- ggplot(data = dat1, aes(x = PDG, y = value, colour = Normalization)) +
+    geom_point(size = 2) + 
+    geom_point(data = datasmall, aes(x = PDG, y = value), color = "gray") + 
+    stat_smooth(data = dataCPM, se = FALSE, degree = 1, span = 1, size = 2) +
+    stat_smooth(data = databig, se = FALSE, degree = 1, span = 1, size = 2) +
+    xlab("Proportion of detected genes") +
+    ylab("Median expression (log2)")  + 
+    labs(title = "Shalek et al., 2014") + 
+    theme(legend.position=c(0.5, 0.8), 
+          plot.title = element_text(size =20),
+          legend.text = element_text(size = 20), 
+          legend.title = element_text(size = 20), 
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size =20), 
+          legend.position = "none")
+
+
+
+### Supp Fig 8 Shalek (row 5)
+dat <- tidyQuants(lcounts, PDGval = pdSub$PDG, qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Shalek.lcounts <- ggplot(dat, aes(x = PDG, y = value, colour = Quantile)) +
+    stat_smooth(se = FALSE, span = 1, degree = 1, size = 2) + geom_point(size = 2) + 
+    xlab("Proportion of detected genes") + ylim(0, 16.1) + 
+    ylab("Expression (log2)") + 
+    labs(title = "Shalek et al., 2014 (raw counts)")
+
+dat <- tidyQuants(lrpm, PDGval = pdSub$PDG, qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+p.Shalek.lrpm <- ggplot(dat, aes(x = PDG, y = value, colour = Quantile)) +
+    stat_smooth(se = FALSE, span = 1, degree = 1, size = 2) + geom_point(size = 2) + 
+    xlab("Proportion of detected genes") + ylim(0, 16.1) + 
+    ylab("Expression (log2)") + 
+    labs(title = "Shalek et al., 2014 (CPM)")
+
+datkeep <- tidyQuants(lrpmcorrShalek[, pdSub$keepme2], PDGval = pdSub$PDG[pdSub$keepme2], 
+                  qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+datnokeep <- tidyQuants(lrpmcorrShalek[, !pdSub$keepme2], PDGval = pdSub$PDG[!pdSub$keepme2], 
+                  qRange = c(0.01, 0.25, 0.5, 0.75, 0.99))
+
+p.Shalek.lrpm.corr <- ggplot(data = datkeep, aes(x = PDG, y = value)) + 
+    geom_point(data = datkeep, aes(colour = Quantile), size = 2) + 
+    geom_point(data = datnokeep, aes(x = PDG, y = value), color = "gray") + 
+    stat_smooth(method = "loess", data = datkeep, aes(color = Quantile), se = FALSE, span = 1, 
+                degree = 1, size = 2) + 
+    xlab("Proportion of detected genes") +  ylim(0, 16.1) +
+    ylab("Expression (log2)") + 
+    labs(title = "Shalek et al., 2014 (Detection rate adjusted CPM)")
+
+
+
+
+
+p1 <- plot_grid(medExprs.Fig7A,  medExprs.Fig7B, medExprs.Fig7D, 
+                 medExprs.Fig7C, medExprs.Fig7E, 
+          ncol =2 , labels = c("A", "B", "C", "D", "E"), 
+          label_size = 25)
+p1
+
+# pdf(paste0(working_path, "scBatchSuppFig-7.pdf"), width = 12, height = 16)
+# print(p1)
+# dev.off()
+
+
+p2 <- plot_grid(p.Patel.lcounts,  p.Patel.lrpm, p.Patel.lrpm.corr,
+                p.Trapnell.lcounts, p.Trapnell.lrpm, p.Trapnell.lrpm.corr,
+                p.Shalek.lcounts, p.Shalek.lrpm, p.Shalek.lrpm.corr,
+                p.Treutlien.lcounts, p.Treutlien.lrpm, p.Treutlien.lrpm.corr,
+                p.Deng.lcounts, p.Deng.lrpm, p.Deng.lrpm.corr,
+          ncol = 3)
+p2
+
+# pdf(paste0(working_path, "scBatchSuppFig-8.pdf"), width = 25, height = 27)
+# print(p1)
+# dev.off()
+
+```
+
+
+# Supp Figure 9 - Filter on raw. (> 0.05). Look at genes expressed in every cell. Plot PC1 vs detection rate
+```{r, fig.width=12, fig.height=16}
+##### Figure 9A Patel
+library(scRNASeqHumanPatelGlioblastoma)
+data("glioHumanCount")
+
+eset <- assay(glioHumanCount)
+pd <- as.data.frame(colData(glioHumanCount))
+pd$tumorName <- as.factor(as.character(pd$tumorName))
+
+pd$RPM <- colSums(eset)/1e6
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+
+subIDs <- (pd$sampleType == "SC" & pd$includeSample == TRUE) 
+pdPatelCounts <- pd[subIDs,]
+esetSubPatel <- eset[, subIDs]
+
+# raw
+lcountsPatel <- log2(esetSubPatel + 1)
+
+# adjusting for library size
+tmp = pdPatelCounts$RPM 
+rpm <- sweep(esetSubPatel, 2, tmp, FUN = "/")
+lrpmPatel <- log2(rpm + 1)
+
+
+eSub <- lrpmPatel[, pdPatelCounts$PDG > 0.05]
+pdSub <- pdPatelCounts[pdPatelCounts$PDG > 0.05, ]
+
+keepIndex <- rowSums(eSub > 0) >= ncol(eSub); sum(keepIndex)
+dat <- sweep(eSub[keepIndex, ], 1, rowMeans(eSub[keepIndex, ]), FUN = "-")
+s <- svd(dat)
+scores <- data.frame(pdSub, s$v[, 1:5], "Batch" = factor(paste0(pdSub$runID, pdSub$fcLane)))
+pc1Var <- c(s$d^2 / sum(s$d^2))[1]
+PC1.Patel <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Patel et al., 2014 (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+
+
+##### Figure 9B Trapnell
+library(scRNASeqHumanTrapnellMyoblast)
+data("myoblastHumanCount")
+
+eset <- assay(myoblastHumanCount)
+pd <- as.data.frame(colData(myoblastHumanCount))
+
+# # remove control cells, debris cells, and wells with more than 1 cell
+pd <- pd[pd$characteristics_ch1.3 == "control well: FALSE" & 
+                      pd$characteristics_ch1.2 == "debris: FALSE" & 
+                      pd$characteristics_ch1.4 == "cells in well: 1", ]
+eset <- eset[, match(rownames(pd), colnames(eset))]
+
+# calculate PDG
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pd$RPM <- colSums(eset) / 1e6
+
+esetSubTrapnell <- eset
+pdTrapnellCounts <- pd
+
+# adjusting for library size
+tmp = pdTrapnellCounts$RPM 
+rpm <- sweep(esetSubTrapnell, 2, tmp, FUN = "/")
+lrpmTrapnell <- log2(rpm + 1)
+
+eSub <- lrpmTrapnell[, pdTrapnellCounts$PDG > 0.05]
+pdSub <- pdTrapnellCounts[pdTrapnellCounts$PDG > 0.05, ]
+
+keepIndex <- rowSums(eSub > 0) >= ncol(eSub); sum(keepIndex)
+dat <- sweep(eSub[keepIndex, ], 1, rowMeans(eSub[keepIndex, ]), FUN = "-")
+s <- svd(dat)
+scores <- data.frame(pdSub, s$v[, 1:5], "Batch" = factor(paste0(pdSub$runID, pdSub$fcLane)))
+pc1Var <- c(s$d^2 / sum(s$d^2))[1]
+PC1.Trapnell <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Trapnell et al., 2014 (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+
+
+##### Figure 9C
+library(scRNASeqMouseShalekDendritic)
+data("dendriticMouseCount")
+
+eset <- assay(dendriticMouseCount)
+pd <- as.data.frame(colData(dendriticMouseCount))
+
+eset <- eset[, pd$rep == FALSE & pd$onChip == FALSE ]
+pd <- pd[pd$rep == FALSE & pd$onChip == FALSE, ]
+
+eset <- eset[, match( colnames(eShalek), rownames(pd))]
+pd <- pd[match( colnames(eShalek), rownames(pd)), ]
+
+pd$RPM <- colSums(eset)/1e6
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+
+esetSubShalek <- eset
+pdShalekCounts <- pd
+
+# adjusting for library size
+tmp = pdShalekCounts$RPM 
+rpm <- sweep(esetSubShalek, 2, tmp, FUN = "/")
+lrpmShalek <- log2(rpm + 1)
+
+eSub <- lrpmShalek[, pdShalekCounts$PDG > 0.05]
+pdSub <- pdShalekCounts[pdShalekCounts$PDG > 0.05, ]
+
+keepIndex <- rowSums(eSub > 0) >= ncol(eSub); sum(keepIndex)
+dat <- sweep(eSub[keepIndex, ], 1, rowMeans(eSub[keepIndex, ]), FUN = "-")
+s <- svd(dat)
+scores <- data.frame(pdSub, s$v[, 1:5], "Batch" = factor(paste0(pdSub$runID, pdSub$fcLane)))
+pc1Var <- c(s$d^2 / sum(s$d^2))[1]
+scores$X1 <- scores$X1*(-1)
+PC1.Shalek <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Shalek et al., 2014 (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+
+
+##### Figure 9D
+library(scRNASeqMouseTreutleinLineage)
+data("lungMouseCount")
+
+eset <- assay(lungMouseCount)
+pd <- as.data.frame(colData(lungMouseCount))
+
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pd$RPM <- colSums(eset) / 1e6
+
+levels(pd$characteristics_ch1.2) <- list("ED14.5" = "age: Embryonic day 14.5",
+                                              "ED16.5" = "age: Embryonic day 16.5",
+                        "ED18.5" ="age: Embryonic day 18.5", "PND107" = "age: post natal day 107")
+pd$day <- pd$characteristics_ch1.2
+pd$sampleType <- factor(ifelse(grepl("bulk", pd$description), "bulk",
+                                ifelse(grepl("no cell control", pd$description),
+                                    "nocell", "SC")), levels=c("SC", "bulk", "nocell"))
+eset <- eset[, pd$sampleType == "SC"]
+pd <- pd[pd$sampleType == "SC", ]
+
+esetSubTreutlein <- eset
+pdTreutleinCounts <- pd
+
+# adjusting for library size
+tmp = pdTreutleinCounts$RPM 
+rpm <- sweep(esetSubTreutlein, 2, tmp, FUN = "/")
+lrpmTreutlein <- log2(rpm + 1)
+
+eSub <- lrpmTreutlein[, pdTreutleinCounts$PDG > 0.05]
+pdSub <- pdTreutleinCounts[pdTreutleinCounts$PDG > 0.05, ]
+
+keepIndex <- rowSums(eSub > 0) >= ncol(eSub); sum(keepIndex)
+dat <- sweep(eSub[keepIndex, ], 1, rowMeans(eSub[keepIndex, ]), FUN = "-")
+s <- svd(dat)
+scores <- data.frame(pdSub, s$v[, 1:5])
+pc1Var <- c(s$d^2 / sum(s$d^2))[1]
+scores$X1 <- scores$X1*(-1)
+PC1.Treutlein <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Treutlein et al., 2014 (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+
+
+##### Figure 9 Deng group C and Deng group D
+library(scRNASeqMouseDengMonoAllelic)
+data("embryoMouseCount")
+
+eset <- assay(embryoMouseCount)
+pd <- as.data.frame(colData(embryoMouseCount))
+
+# remove liver and fibroblast cells
+keepCells <- !grepl("Liver", pd$source_name_ch1) &
+    !grepl("fibroblast", pd$source_name_ch1) &
+    !grepl("strain: C57BL/6J", pd$characteristics_ch1)
+
+eset <- eset[, keepCells]
+pd <- pd[keepCells, ]
+
+pd$PDG <- 1 - (apply(eset, 2, function(x){ length(which(x == 0)) }) / nrow(eset))
+pd$RPM <- colSums(eset) / 1e6
+
+esetSubDeng <- eset
+pdDengCounts <- pd
+
+# adjusting for library size
+tmp = pdDengCounts$RPM 
+rpm <- sweep(esetSubDeng, 2, tmp, FUN = "/")
+lrpmDeng <- log2(rpm + 1)
+
+pdDengCounts$time <- pdDeng$time
+
+eSub <- eDeng[, pdDeng$PDG > 0.05]
+pdSub <- pdDeng[pdDeng$PDG > 0.05, ]
+keepIndex <- rowSums(eSub > 0) >= ncol(eSub); sum(keepIndex)
+dat <- sweep(eSub[keepIndex, ], 1, rowMeans(eSub[keepIndex, ]), FUN = "-")
+s <- svd(dat)
+pcVar <- c(s$d^2 / sum(s$d^2))[1:3]
+scores <- data.frame(pdDeng[pdDeng$PDG > 0.05, ], s$v[, 1:3])
+scores$X1 <- scores$X1 * (-1)
+PC1.Deng <- ggplot(scores, aes(x = PDG, y = X1)) + 
+    geom_point(size = 2, color = "blue") + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Proportion of detected genes") + 
+    labs(title = paste0("Deng et al., 2014 (corr: ", 
+                        round(cor(scores$X1, scores$PDG), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
+
+
+pout <- plot_grid(PC1.Patel, PC1.Trapnell, PC1.Shalek, 
+                  PC1.Treutlein, PC1.Deng, ncol = 2,
+                  labels = LETTERS[1:5], 
+                  label_size = 25)
+pout
+
+
+# pdf(paste0(working_path, "scBatchSuppFig-9.pdf"), width = 12, height = 16)
+# print(pout)
+# dev.off()
+
+```
+
+```{r}
+sessionInfo()
+```
