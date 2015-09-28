@@ -311,7 +311,7 @@ colTum <- brewer.pal(8, "Dark2")[c(1:5)]
 colRun <- brewer.pal(9, "Set1")[c(3,5,4, 8, 1:2)]
 
 Tumor = factor(pdPatel$tumorName)
-levels(Tumor) <- c("Tumor 5", paste0("Tumor ", 1:4))
+levels(Tumor) <- c("Group 5", paste0("Group ", 1:4))
 Tumor = factor(Tumor,levels(Tumor)[c(2:5, 1)])
 Batch = factor(pdPatel$runID)
 levels(Batch) <- c("Batch 5", "Batch 2", "Batch 3", "Batch 6", "Batch 1", "Batch 4")
@@ -356,9 +356,8 @@ PC1.2.tumMGH26 <- ggplot(scores.sub, aes(x = X1, y = X2, colour = BatchSub)) +
     geom_point(size = 4) + 
     xlab(paste0("Principal Component 1 (", round(pcVar[1],2)*100, "%)")) + 
     ylab(paste0("Principal Component 2 (", round(pcVar[2],2)*100, "%)")) +  
-    scale_colour_manual(values = colRun[c(5,6)]) +
-    labs(title = "Only Biological Group 5") 
-
+    scale_colour_manual(values = colRun[c(5,6)], name = "Batch") +
+    labs(title = "Only Biological Group 5")
 
 p1 <- plot_grid(PC1.2.byTumor, PC1.2.byBatch, PC1.2.tumMGH26, 
           p.boxplot, cols = 2, 
