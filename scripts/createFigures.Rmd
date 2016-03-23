@@ -43,7 +43,9 @@ gg_color_hue <- function(n) {
   hcl(h=hues, l=65, c=100)[1:n]
 }
 
-working_path <- "~/Dropbox/DFCI/manuscripts/scRNASeqBatch/figures/"
+# working_path <- "~/Dropbox/DFCI/manuscripts/scRNASeqBatch/figures/"
+working_path <- "/net/irizarryfs01/srv/export/irizarryfs01_backed_up/share_root/shicks/papers/scBatchPaper"
+datapkgs_path <- "/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/dataPackages"
 list.files(working_path)
 ```
 
@@ -146,9 +148,6 @@ nc <- length(levels(t2))
 assocstats(table(t1, t2))$cont / (((nr-1) / nr) * ((nc-1)/nc))^(1/4)
 ```
 
-#### Load Leng et al. (2015)
-
-
 #### Jaitin et al. (2014) UMI and phenotypic data
 This was a methods paper for MARS-Seq and does not include a biological group. 
 
@@ -169,8 +168,6 @@ table(pdSajita$characteristics_ch1)
 
 #### Load Macosko et al. (2015) UMI and phenotypic data
 This was a methods paper for Drop-Seq and does not include a biological group. 
-
-#### Load Zeisel et al. (2015) UMI and phenotypic data
 
 
 
