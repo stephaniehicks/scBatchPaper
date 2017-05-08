@@ -324,8 +324,7 @@ and is on the log scale (not log2 scale).
 M <- 1.2e5
 p <- pdDeng[pdDeng$bin == "Bin D", ]$CDR
 scores <- data.frame(pdDeng[pdDeng$bin %in% c("Bin D"), ],
-                     "predMean" = p * log( (M/ (nrow(eDeng)*p )) + 1)) # - 
-                                  # p * ((M/(nrow(eDeng)*p))^2  / (2 * ( (M/(nrow(eDeng)*p)) + 1)^2)))
+                     "predMean" = p * log( (M/ (nrow(eDeng)*p )) + 1))
 PC1.Deng.D <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -342,8 +341,7 @@ PC1.Deng.D <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 9e4
 p <- pdGuo[pdGuo$weekGroup == "7-8", ]$CDR
 scores <- data.frame(pdGuo[pdGuo$weekGroup == "7-8", ], 
-                       "predMean" = p * log( (M/ (nrow(eGuo)*p )) + 1))#  - 
-                                    # p * ((M/(nrow(eGuo)*p))^2  / (2 * ( (M/(nrow(eGuo)*p)) + 1)^2)))
+                       "predMean" = p * log( (M/ (nrow(eGuo)*p )) + 1))
 PC1.Guo.B <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -359,8 +357,7 @@ PC1.Guo.B <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 1.5e6
 p <- pdKowalczyk$CDR 
 scores <- data.frame(pdKowalczyk, 
-                     "predMean" = p * log( (M  / (nrow(eKowalczyk)*p )) + 1))# - 
-                                  # p * ((M /(nrow(eKowalczyk)*p))^2  / (2 * ((M /(nrow(eKowalczyk)*p)) + 1)^2)))
+                     "predMean" = p * log( (M  / (nrow(eKowalczyk)*p )) + 1))
 PC1.Kowalczyk <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -377,8 +374,7 @@ PC1.Kowalczyk <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 1.8e5
 p <- pdKumar[pdKumar$bin == "Group A", ]$CDR 
 scores <- data.frame(pdKumar[pdKumar$bin == "Group A", ], 
-                     "predMean" = p * log( (M / (nrow(eKumar)*p )) + 1))# - 
-                                  # p * ((M/(nrow(eKumar)*p))^2  / (2 * ((M/(nrow(eKumar)*p)) + 1)^2)))
+                     "predMean" = p * log( (M / (nrow(eKumar)*p )) + 1))
 PC1.Kumar.A <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -401,8 +397,7 @@ pdSub$colMeans <- colMeans(esetSub)
 M <- 2.3e5
 p <- pdSub$CDR 
 scores <- data.frame(pdSub, 
-                     "predMean" = p * log( (M / (nrow(esetSub)*p )) + 1))# - 
-                                  # p * ((M/(nrow(esetSub)*p))^2  / (2 * ((M/(nrow(esetSub)*p)) + 1)^2)))
+                     "predMean" = p * log( (M / (nrow(esetSub)*p )) + 1))
 PC1.Patel <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -419,8 +414,7 @@ PC1.Patel <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 6e4
 p <- pdTreutlein$CDR 
 scores <- data.frame(pdTreutlein, 
-                     "predMean" = p * log( (M / (nrow(eTreutlein)*p )) + 1))# - 
-                                  # p * ((M/(nrow(eTreutlein)*p))^2  / (2 * ((M/(nrow(eTreutlein)*p)) + 1)^2)))
+                     "predMean" = p * log( (M / (nrow(eTreutlein)*p )) + 1))
 PC1.Treutlein <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -437,8 +431,7 @@ PC1.Treutlein <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 1e5
 p <- pdShalek$CDR 
 scores <- data.frame(pdShalek, 
-                      "predMean" = p * log( (M / (nrow(eShalek)*p )) + 1))# - 
-                                   # p * ((M/(nrow(eShalek)*p))^2  / (2 * ((M/(nrow(eShalek)*p)) + 1)^2)))
+                      "predMean" = p * log( (M / (nrow(eShalek)*p )) + 1))
 PC1.Shalek <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -454,8 +447,7 @@ PC1.Shalek <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 1e5
 p <- pdTrapnell$CDR 
 scores <- data.frame(pdTrapnell, 
-                      "predMean" = p * log( (M / (nrow(eTrapnell)*p )) + 1))# - 
-                                   # p * ((M/(nrow(eTrapnell)*p))^2  / (2 * ((M/(nrow(eTrapnell)*p)) + 1)^2)))
+                      "predMean" = p * log( (M / (nrow(eTrapnell)*p )) + 1))
 PC1.Trapnell <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -472,8 +464,7 @@ PC1.Trapnell <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 1.8e5
 p <- pdBurns[pdBurns$tissue == "cochlear", ]$CDR 
 scores <- data.frame(pdBurns[pdBurns$tissue == "cochlear", ], 
-                      "predMean" = p * log( (M / (nrow(eBurns)*p )) + 1)) # - 
-                                   # p * ((M/(nrow(eBurns)*p))^2  / (2 * ((M/(nrow(eBurns)*p)) + 1)^2)))
+                      "predMean" = p * log( (M / (nrow(eBurns)*p )) + 1))
 PC1.Burns.A <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -490,8 +481,7 @@ PC1.Burns.A <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 6e5
 p <- pdLeng$CDR
 scores <- data.frame(pdLeng, 
-                     "predMean" = p * log( (M / (nrow(eLeng)*p )) + 1)) # - 
-                                  # p * ((M/(nrow(eLeng)*p))^2  / (2 * ((M/(nrow(eLeng)*p)) + 1)^2)))
+                     "predMean" = p * log( (M / (nrow(eLeng)*p )) + 1)) 
 PC1.Leng <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -508,8 +498,7 @@ PC1.Leng <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 5e5
 p <- pdBose$CDR
 scores <- data.frame(pdBose,
-                     "predMean" = p * log( (M / (nrow(eBose)*p )) + 1)) #  - 
-                                  # p * ( (M/(nrow(eBose)*p))^2  / (2 * ( (M/(nrow(eBose)*p)) + 1 )^2) ) )
+                     "predMean" = p * log( (M / (nrow(eBose)*p )) + 1)) 
 PC1.Bose <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -526,8 +515,7 @@ PC1.Bose <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 6e5 
 p <- pdJaitin$CDR
 scores <- data.frame(pdJaitin,
-                     "predMean" = p * log( (M / (nrow(eJaitin)*p )) + 1)) #  - 
-                                  # p * ( (M/(nrow(eJaitin)*p))^2  / (2 * ( (M/(nrow(eJaitin)*p)) + 1 )^2) ) )
+                     "predMean" = p * log( (M / (nrow(eJaitin)*p )) + 1))
 PC1.Jaitin <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -544,8 +532,7 @@ PC1.Jaitin <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 5e6 
 p <- pdMacosko$CDR
 scores <- data.frame(pdMacosko,
-                     "predMean" = p * log( (M / (nrow(eMacosko)*p )) + 1)) # - 
-                                  # p * ( (M/(nrow(eMacosko)*p))^2  / (2 * ( (M/(nrow(eMacosko)*p)) + 1 )^2) ) )
+                     "predMean" = p * log( (M / (nrow(eMacosko)*p )) + 1)) 
 PC1.Macosko <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -562,8 +549,7 @@ PC1.Macosko <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 4.5e5 
 p <- pdSatija$CDR
 scores <- data.frame(pdSatija, 
-                     "predMean" = p * log( (M / (nrow(eSatija)*p )) + 1)) # - 
-                                  # p * ( (M/(nrow(eSatija)*p))^2  / (2 * ( (M/(nrow(eSatija)*p)) + 1 )^2) ) )
+                     "predMean" = p * log( (M / (nrow(eSatija)*p )) + 1)) 
 PC1.Satija <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
     geom_point(size = 2, color = "black") + 
     xlab("Detection rate") + 
@@ -580,8 +566,7 @@ PC1.Satija <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 M <- 5e5
 p <- pdZeisel[pdZeisel$tissue == "ca1hippocampus", ]$CDR
 scores <- data.frame(pdZeisel[pdZeisel$tissue == "ca1hippocampus", ],
-                    "predMean" = p * log( (M / (nrow(eZeisel)*p )) + 1)) # -
-                                 # p * ( (M/(nrow(eZeisel)*p))^2  / (2 * ( (M/(nrow(eZeisel)*p)) + 1 )^2) ) )
+                    "predMean" = p * log( (M / (nrow(eZeisel)*p )) + 1))
 PC1.Zeisel.B <- ggplot(scores, aes(x = CDR, y = colMeans)) +
     geom_point(size = 2, color = "black") +
     xlab("Detection rate") +
@@ -1868,7 +1853,6 @@ dev.off()
 library(rafalib)
 hc <- hclust(dist(t(ePatel[,subIDs])))
 
-# gg_color_hue(2)
 pdf(file.path(working_path, "scBatchSuppFig-Patel-hclust-tumor5only.pdf"), width = 15, height = 6)
 myplclust(hc, labels=scores.sub$instrument, 
           lab.col=as.fumeric(scores.sub$instrument), cex=0.75, 
@@ -1879,8 +1863,10 @@ dev.off()
 ```
 
 
-# Patel & Trapnell: detection rate vs sequencing depth
-```{r}
+# Patel and Trapnell studies: detection rate vs sequencing depth
+Patel et al. (2014) counts came from [GitHub repo](https://github.com/willtownes/patel2014gliohuman) 
+and the Trapnell et al. (2014) counts came from the [conquer database](http://imlspenticton.uzh.ch:3838/conquer/). 
+```{r patel and trapnell counts vs seq depth}
 # Patel 
 data(patel2014gliohuman_counts) # object name: patel_glio_2014
 patel_pd$cS = colSums(as.data.frame(as.matrix(assay(patel_glio_2014)))) / 1e6
@@ -1939,7 +1925,7 @@ dev.off()
 ```
 
 
-# Supp Figure: K-boxplots 
+# Figure: K-boxplots 
 
 ```{r kaboxplots, fig.width=12, fig.height=16, message=FALSE, warning=FALSE}
 qVals = c(0.25, 0.5, 0.75)
@@ -2343,7 +2329,7 @@ dev.off()
 
 
 
-# Figure: Discovered cell types from Burns et al (2015) 
+# Figure: Discovered cell types from Burns et al. (2015) 
 ```{r}
 
 ID = pdBurns$tissue %in% "cochlear" & !(pdBurns$celltypespecific %in% c("HC", "NSC (i)", "NSC (ii)", "SC", "Med SC"))
@@ -2425,7 +2411,7 @@ dev.off()
 ```
 
 
-# Figure: Discovered cell types from Zeisel et al (2014)
+# Figure: Discovered cell types from Zeisel et al. (2014)
 ```{r Supp Figure box zeisel, fig.width = 12, fig.height = 10}
 ff = ffprint <- levels(factor(pdZeisel$level1class))
 ffprint[6:7] <- c("pyramidalCA1", "pyramidalSS")
@@ -2938,7 +2924,7 @@ dev.off()
 
 ```
 
-# Figure - Bulk vs SC RATIO of obs / expected
+# Figure - Bulk vs SC ratio of obs / expected
 ```{r}
 pdf(file.path(working_path, "Figure_scatter_ratio_log2scale.pdf"), width = 20, height =6) 
 par(mfrow=c(1,3), mai=c(0.75,0.75,0.4,0.1), mgp=c(3.3,1.25,0), 
