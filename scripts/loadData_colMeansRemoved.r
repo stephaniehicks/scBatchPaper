@@ -21,11 +21,11 @@ pd <- pData(embryoMouseRPKM)
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
 
 pdDeng <- pd
 eDeng <- log2(eset + 1) # log transform RPKMs
 pdDeng$colMeans <- colMeans(eDeng)
+eDeng <- sweep(eDeng, 2, pdDeng$colMeans, FUN = "-")
 
 zz <- levels(pdDeng$time)
 pdDeng$bin <- ifelse(pdDeng$time %in% zz[1:2], "Bin A",
@@ -56,9 +56,9 @@ pd <- pData(spleenMouseMARSSeq)
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
 pd$batch <- factor(pd$batch)
 levels(pd$batch) <- paste("Batch", 1:44)
+pd$libSize <- colSums(eset)
 
 # remove cells with a library size of 0 and outlier cells
 keepMe <- (colSums(eset) != 0) & (pd$CDR < 0.15)
@@ -67,11 +67,12 @@ eset <- eset[, keepMe]
 
 # normalize by total number of barcoded molecules and multiple by 1e6 (see drop-seq paper)
 eset = sweep(eset, 2, colSums(eset)/1e6, FUN = "/")
-pd$cSS <- colSums(eset)
 
 pdJaitin <- pd
 eJaitin <- log2(eset + 1) # log2 transform barcoded molecules
 pdJaitin$colMeans <- colMeans(eJaitin)
+eJaitin <- sweep(eJaitin, 2, pdJaitin$colMeans, FUN = "-")
+
 
 # Compute first 3 PCs (approximate) using irlba pkg
 dat <- sweep(eJaitin, 1, rowMeans(eJaitin), FUN = "-")
@@ -92,7 +93,6 @@ eset <- exp(eset) - 1 # data on GEO was provided on log(TPM + 1) scale
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
 pd$batch <- factor(paste(pd$instrument, pd$runID, pd$fcID, pd$fcLane, sep="_"))
 pd$batch <- factor(pd$batch, levels(pd$batch)[c(3,1,4,2)])
 levels(pd$batch) <- paste("Batch", 1:4)
@@ -109,6 +109,8 @@ pd$bin <- ifelse(keeCDRcr8, "Group A", ifelse(keepv6.5serum, "Group B", "Group C
 pdKumar <- pd
 eKumar <- log2(eset+1)
 pdKumar$colMeans <- colMeans(eKumar)
+eKumar <- sweep(eKumar, 2, pdKumar$colMeans, FUN = "-")
+
 
 # calculate SVD
 dat <- sweep(eKumar[, pdKumar$bin == "Group A"], 1, rowMeans(eKumar[, pdKumar$bin == "Group A"]), FUN = "-")
@@ -133,7 +135,6 @@ patel_pd = colData(patel_glio_2014_tpm)
 patel_tpm = as.data.frame(as.matrix(assay(patel_glio_2014_tpm)))
 patel_pd$CDR <- colMeans(patel_tpm != 0)
 patel_pd$CDRlt1 <- colMeans(patel_tpm > 1)
-patel_pd$cS <- colSums(patel_tpm) # colSums on original scale
 
 patel_tpm <- log2(patel_tpm + 1)
 
@@ -143,10 +144,11 @@ eset <- exprs(glioHumanTPM) # row standardized and log scale
 pd <- pData(glioHumanTPM)
 pd$CDR <- patel_pd$CDR[match(rownames(pd), patel_pd$Run)]
 pd$CDRlt1 <- patel_pd$CDRlt1[match(rownames(pd), patel_pd$Run)]
-pd$cS <- patel_pd$cS[match(rownames(pd), patel_pd$Run)]
+
 ePatel <- eset[, pd$sampleType == "SC"]
 pdPatel <- pd[pd$sampleType == "SC", ]
 pdPatel$colMeans <- colMeans(ePatel) # centered around 0 because row means removed
+ePatel <- sweep(ePatel, 2, pdPatel$colMeans, FUN = "-")
 
 # calculate SVD
 sPatel <- svd(ePatel) # already row standardized
@@ -186,7 +188,6 @@ pd$cond <- ifelse(grepl(pattern = "(Unstimulation)",
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
 
 # Subset for only the LPS experimental condition
 keepIDs <- grepl(pattern = "^LPS_([0-9]+h)_S", pd$title)
@@ -195,6 +196,8 @@ pdShalek <- pd[keepIDs, ]
 pdShalek$batch <- factor(paste(pdShalek$runID, pdShalek$fcLane, sep = "_"))
 levels(pdShalek$batch) <- paste0("Batch ", 1:4)
 pdShalek$colMeans <- colMeans(eShalek)
+eShalek <- sweep(eShalek, 2, pdShalek$colMeans, FUN = "-")
+
 
 # calculate SVD
 dat <- sweep(eShalek, 1, rowMeans(eShalek), FUN = "-")
@@ -226,11 +229,11 @@ levels(pd$hour) <- (c("0h", "24h", "48h", "72h"))
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
 
 pdTrapnell <- pd
-eTrapnell <- log2(eset + 1) # log2 transform FPKMs
+eTrapnell <- log2(eset + 1) # log transform FPKMs
 pdTrapnell$colMeans <- colMeans(eTrapnell)
+eTrapnell <- sweep(eTrapnell, 2, pdTrapnell$colMeans, FUN = "-")
 
 # calculate SVD
 dat <- sweep(eTrapnell, 1, rowMeans(eTrapnell), FUN = "-")
@@ -260,11 +263,11 @@ pd$batch <- factor(pd$batch, levels = levels(pd$batch)[c(4,5,7,1:3,6)])
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
 pdTreutlein <- pd
 eTreutlein <- log2(eset + 1) # log transform FPKMs
 levels(pdTreutlein$day) <- c(levels(pdTreutlein$day)[1:3], "Adult")
 pdTreutlein$colMeans <- colMeans(eTreutlein)
+eTreutlein <- sweep(eTreutlein, 2, pdTreutlein$colMeans, FUN = "-")
 
 # calculate SVD
 dat <- sweep(eTreutlein, 1, rowMeans(eTreutlein), FUN = "-")
@@ -284,7 +287,7 @@ pd <- pData(printHumanUMI_PS041)
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
+pd$libSize <- colSums(eset)
 
 pd$textFile <- laply(str_split(pd$title, "_"), function(x){ x[1] })
 pd$source_name_ch1 <- factor(pd$source_name_ch1)
@@ -293,12 +296,12 @@ levels(pd$batch) <- paste("Batch", 1:5)
 pd$group <- pd$source_name_ch1
 levels(pd$group)[1] <- c("mix U87 and WI-38")
 
-eset = sweep(eset, 2, pd$cS/1e6, FUN = "/")
-pd$cSS <- colSums(eset)
+eset = sweep(eset, 2, pd$libSize/1e6, FUN = "/")
 
 pdBose <- pd
-eBose <- log2(eset+1)
+eBose <- log2(eset+1) # log2 transform FPKMs
 pdBose$colMeans <- colMeans(eBose)
+eBose <- sweep(eBose, 2, pdBose$colMeans, FUN = "-")
 
 # calculate SVD
 dat <- sweep(eBose, 1, rowMeans(eBose), FUN = "-")
@@ -319,7 +322,6 @@ pd <- pData(innerEarMouseTPM)
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
 pd$tissue <- factor(pd$source_name_ch1)
 levels(pd$tissue) <- c("cochlear", "utricular")
 pd$fluidicChip <- factor(str_sub(pd$characteristics_ch1.1, start = 11))
@@ -351,7 +353,7 @@ pdBurns$batch <- factor(pdBurns$batch)
 pdBurns$tissue <- factor(pdBurns$tissue)
 
 pdBurns$colMeans <- colMeans(eBurns)
-
+eBurns <- sweep(eBurns, 2, pdBurns$colMeans, FUN = "-")
 
 # calculate SVD
 dat <- sweep(eBurns[, pdBurns$tissue == "cochlear"], 1, rowMeans(eBurns[, pdBurns$tissue == "cochlear"]), FUN = "-")
@@ -378,7 +380,6 @@ pd <- pData(germCellsHumanFPKM)
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
 pd$source_name_ch1 <- factor(pd$source_name_ch1)
 pd$embryo <- unlist(lapply(str_split(as.character(pd$title),"_",n=5), function(x) x[4]))
 pd$sex <- factor(str_sub(pd$characteristics_ch1.1, start = 9))
@@ -399,6 +400,7 @@ pdGuo <- pd[keepMe, ]
 eGuo <- log2(eset[,keepMe] + 1) # log2 transform FPKMs
 
 pdGuo$colMeans <- colMeans(eGuo)
+eGuo <- sweep(eGuo, 2, pdGuo$colMeans, FUN = "-")
 
 pdGuo$batch <- factor(pdGuo$batch)
 pdGuo$weekGroup <- factor(pdGuo$weekGroup)
@@ -427,7 +429,6 @@ eset <- exp(eset) - 1 # data on GEO was provided on log(TPM + 1) scale
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
 
 pd$age <- str_sub(pd$characteristics_ch1.1, start = 6, end = 15)
 pd$celltype <- str_sub(pd$characteristics_ch1.2, start = 12)
@@ -445,6 +446,7 @@ keepMe <- pd$celltype == "shortTermHSC"
 pdKowalczyk <- pd[keepMe, ]
 eKowalczyk <- log2(eset[, keepMe]+1)
 pdKowalczyk$colMeans <- colMeans(eKowalczyk)
+eKowalczyk <- sweep(eKowalczyk, 2, pdKowalczyk$colMeans, FUN = "-")
 
 # calculate SVD
 dat <- sweep(eKowalczyk, 1, rowMeans(eKowalczyk), FUN = "-")
@@ -464,7 +466,6 @@ pd <- pData(oscillatoryGenesTPM)
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
 pd$celltype <- ifelse(pd$source_name_ch1 == "single H1 hESC", "H1-hESC",
                 ifelse(pd$source_name_ch1 ==
                 "single H1-Fucci cell sorted from G1 phase of the cell cycle only",
@@ -481,6 +482,8 @@ pdLeng <- pd[keepMe, ]
 eLeng <- log2(eset[, keepMe] + 1) # log2 transform FPKMs
 
 pdLeng$colMeans <- colMeans(eLeng)
+eLeng <- sweep(eLeng, 2, pdLeng$colMeans, FUN = "-")
+
 
 # calculate SVD
 dat <- sweep(eLeng, 1, rowMeans(eLeng), FUN = "-")
@@ -500,7 +503,7 @@ eset <- exprs(retinaMouseUMI)
 pdMacosko$CDR <- colMeans(eset != 0)
 pdMacosko$CDRlt1 <- colMeans(eset > 1)
 pdMacosko$retina <- factor(str_sub(pdMacosko$title, start = 11))
-pdMacosko$cS <- colSums(eset) # colSums on original scale
+pdMacosko$libSize <- colSums(eset)
 
 rm(eset, retinaMouseUMI)
 
@@ -511,12 +514,12 @@ rm(eset, retinaMouseUMI)
 # save(eMacosko, file = "/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/eMacosko16.rda")
 load("/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/eMacosko16.rda")
 
-
 pdMacosko$colMeans <- colMeans(eMacosko)
+dat <- sweep(eMacosko, 2, pdMacosko$colMeans, FUN = "-")
 
 # Compute first 3 PCs (approximate) using irlba pkg
-tmp = rowMeans(eMacosko)
-dat1 <- sweep(eMacosko, 1, tmp, FUN = "-"); rm(tmp)
+tmp = rowMeans(dat)
+dat1 <- sweep(dat, 1, tmp, FUN = "-"); rm(dat, tmp)
 sMacosko <- irlba(dat1, nv = 3); rm(dat1)
 
 print("[Data loaded]: Macosko et al. (2015)")
@@ -534,7 +537,7 @@ pd <- pData(spatialZebrafishUMI)
 # calculate CDR
 pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
-pd$cS <- colSums(eset) # colSums on original scale
+pd$libSize <- colSums(eset)
 pd$group <- laply(str_split(pd$title, "_"), function(x){ x[1] })
 pd$plate <- laply(str_split(pd$title, "_"), function(x){ x[2] })
 pd$wellID <- laply(str_split(pd$title, "_"), function(x){ x[3] })
@@ -542,11 +545,11 @@ pd$batch <- factor(str_sub(pd$characteristics_ch1, start = 21))
 
 # normalize by total number of barcoded molecules and multiple by 1e6 (see drop-seq paper)
 eset = sweep(eset, 2, colSums(eset)/1e6, FUN = "/")
-pd$cSS <- colSums(eset)
 
 eSatija <- log2(eset + 1) # log2 transform normalized UMIs
 pdSatija <- pd
 pdSatija$colMeans <- colMeans(eSatija)
+eSatija <- sweep(eSatija, 2, colMeans(eSatija), FUN = "-")
 
 # Compute first 3 PCs (approximate) using irlba pkg
 dat1 <- sweep(eSatija, 1, rowMeans(eSatija), FUN = "-")
@@ -570,17 +573,19 @@ pd$CDR <- colMeans(eset != 0)
 pd$CDRlt1 <- colMeans(eset > 1)
 is.ercc <- grepl("ERCC-", rownames(eset))
 pd$ERCC_libSize <- colSums(eset[is.ercc, ])
-pd$cS <-  colSums(eset[!is.ercc,]) # colSums on original scale
+pd$libSize <- colSums(eset[!is.ercc,])
 
 # normalize by total number of barcoded molecules and multiple by 1e6 (see drop-seq paper)
 # but only include endgo genes
 eset <- eset[!is.ercc, ] #no scale
 eset = sweep(eset, 2, colSums(eset)/1e6, FUN = "/") # scale or sqrtscale
-pd$cSS <- colSums(eset)
+
 eZeisel <- log2(eset + 1) # log2 transform normalized UMIs
 pdZeisel <- pd
 
 pdZeisel$colMeans <- colMeans(eZeisel)
+eZeisel <- sweep(eZeisel, 2, pdZeisel$colMeans, FUN = "-")
+
 
 # Compute first 3 PCs (approximate) using irlba pkg
 dat <- sweep(eZeisel[, pdZeisel$tissue == "sscortex"], 1,
