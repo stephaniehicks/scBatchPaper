@@ -57,7 +57,7 @@ gg_color_hue <- function(n) {
 }
 
 working_path <- "/net/irizarryfs01/srv/export/irizarryfs01_backed_up/share_root/shicks/papers/scBatchPaper"
-datapkgs_path <- "/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/dataPackages"
+datapkgs_path <- "/net/irizarryfs01/srv/export/irizarryfs01_backed_up/share_root/shicks/dataPackages"
 list.files(working_path)
 
 title.deng <- "Deng et al. (2014)"
@@ -70,11 +70,11 @@ title.shalek.2014 <- "Shalek et al. (2014)"
 title.trapnell <- "Trapnell et al. (2014)"
 title.burns <- "Burns et al. (2015)"
 title.leng <- "Leng et al. (2015)"
-title.bose <- "Bose et al. (2015)"
 title.jaitin <- "Jaitin et al. (2014)"
 title.macosko <- "Macosko et al. (2015)"
 title.satija <- "Satija et al. (2015)"
 title.zeisel <- "Zeisel et al. (2015)"
+title.zheng <- "Zheng et al. (2017)"
 ```
 
 
@@ -105,11 +105,11 @@ scores <- rbind(data.frame("CDR" = pdDeng$CDR, "Study"= rep(title.deng, nrow(pdD
                 data.frame("CDR" = pdTrapnell$CDR, "Study"= rep(title.trapnell, nrow(pdTrapnell))),
                 data.frame("CDR" = pdBurns$CDR, "Study"= rep(title.burns, nrow(pdBurns))),
                 data.frame("CDR" = pdLeng$CDR, "Study"= rep(title.leng, nrow(pdLeng))),
-                data.frame("CDR" = pdBose$CDR, "Study"= rep(title.bose, nrow(pdBose))),
                 data.frame("CDR" = pdJaitin$CDR, "Study"= rep(title.jaitin, nrow(pdJaitin))),
                 data.frame("CDR" = pdMacosko$CDR, "Study"= rep(title.macosko, nrow(pdMacosko))),
                 data.frame("CDR" = pdSatija$CDR, "Study"= rep(title.satija, nrow(pdSatija))),
-                data.frame("CDR" = pdZeisel$CDR, "Study"= rep(title.zeisel, nrow(pdZeisel))))
+                data.frame("CDR" = pdZeisel$CDR, "Study"= rep(title.zeisel, nrow(pdZeisel))), 
+                data.frame("CDR" = pdTENx$CDR, "Study"= rep(title.zheng, nrow(pdTENx))))
 
 scores$Study = factor(scores$Study, 
                       levels = names(sort(unlist(lapply( split(scores$CDR, factor(scores$Study)), median)), 
@@ -135,21 +135,36 @@ dev.off()
 # Figure: detection rate lt1 boxplots by study
 ```{r Figure detection rate lt1 boxplots all studies, fig.width=30, fig.height=18}
 
-scores <- rbind(data.frame("CDR" = pdDeng$CDRlt1, "Study"= rep(title.deng, nrow(pdDeng))),
-                data.frame("CDR" = pdGuo$CDRlt1, "Study"= rep(title.guo, nrow(pdGuo))),
-                data.frame("CDR" = pdKowalczyk$CDRlt1, "Study"= rep(title.kowalczyk, nrow(pdKowalczyk))),
-                data.frame("CDR" = pdKumar$CDRlt1, "Study"= rep(title.kumar, nrow(pdKumar))),
-                data.frame("CDR" = pdPatel$CDRlt1, "Study"= rep(title.patel, nrow(pdPatel))),
-                data.frame("CDR" = pdTreutlein$CDRlt1, "Study"= rep(title.treutlein, nrow(pdTreutlein))),
-                data.frame("CDR" = pdShalek$CDRlt1, "Study"= rep(title.shalek.2014, nrow(pdShalek))),
-                data.frame("CDR" = pdTrapnell$CDRlt1, "Study"= rep(title.trapnell, nrow(pdTrapnell))),
-                data.frame("CDR" = pdBurns$CDRlt1, "Study"= rep(title.burns, nrow(pdBurns))),
-                data.frame("CDR" = pdLeng$CDRlt1, "Study"= rep(title.leng, nrow(pdLeng))),
-                data.frame("CDR" = pdBose$CDRlt1, "Study"= rep(title.bose, nrow(pdBose))),
-                data.frame("CDR" = pdJaitin$CDRlt1, "Study"= rep(title.jaitin, nrow(pdJaitin))),
-                data.frame("CDR" = pdMacosko$CDRlt1, "Study"= rep(title.macosko, nrow(pdMacosko))),
-                data.frame("CDR" = pdSatija$CDRlt1, "Study"= rep(title.satija, nrow(pdSatija))),
-                data.frame("CDR" = pdZeisel$CDRlt1, "Study"= rep(title.zeisel, nrow(pdZeisel))))
+scores <- rbind(data.frame("CDR" = pdDeng$CDRlt1, 
+                           "Study"= rep(paste0(title.deng, "\n(G=", nrow(eDeng),")"), nrow(pdDeng))),
+                data.frame("CDR" = pdGuo$CDRlt1, 
+                           "Study"= rep(paste0(title.guo, "\n(G=", nrow(eGuo),")"), nrow(pdGuo))),
+                data.frame("CDR" = pdKowalczyk$CDRlt1, 
+                           "Study"= rep(paste0(title.kowalczyk, "\n(G=", nrow(eKowalczyk),")"), nrow(pdKowalczyk))),
+                data.frame("CDR" = pdKumar$CDRlt1, 
+                           "Study"= rep(paste0(title.kumar, "\n(G=", nrow(eKumar),")"), nrow(pdKumar))),
+                data.frame("CDR" = pdPatel$CDRlt1, 
+                           "Study"= rep(paste0(title.patel, "\n(G=", nrow(ePatel),")*"), nrow(pdPatel))),
+                data.frame("CDR" = pdTreutlein$CDRlt1, 
+                           "Study"= rep(paste0(title.treutlein, "\n(G=", nrow(eTreutlein),")"), nrow(pdTreutlein))),
+                data.frame("CDR" = pdShalek$CDRlt1, 
+                           "Study"= rep(paste0(title.shalek.2014, "\n(G=", nrow(eShalek),")"), nrow(pdShalek))),
+                data.frame("CDR" = pdTrapnell$CDRlt1, 
+                           "Study"= rep(paste0(title.trapnell, "\n(G=", nrow(eTrapnell),")"), nrow(pdTrapnell))),
+                data.frame("CDR" = pdBurns$CDRlt1, 
+                           "Study"= rep(paste0(title.burns, "\n(G=", nrow(eBurns),")"), nrow(pdBurns))),
+                data.frame("CDR" = pdLeng$CDRlt1, 
+                           "Study"= rep(paste0(title.leng, "\n(G=", nrow(eLeng),")"), nrow(pdLeng))),
+                data.frame("CDR" = pdJaitin$CDRlt1, 
+                           "Study"= rep(paste0(title.jaitin, "\n(G=", nrow(eJaitin),")"), nrow(pdJaitin))),
+                data.frame("CDR" = pdMacosko$CDRlt1, 
+                           "Study"= rep(paste0(title.macosko, "\n(G=", nrow(eMacosko),")"), nrow(pdMacosko))),
+                data.frame("CDR" = pdSatija$CDRlt1, 
+                           "Study"= rep(paste0(title.satija, "\n(G=", nrow(eSatija),")"), nrow(pdSatija))),
+                data.frame("CDR" = pdZeisel$CDRlt1, 
+                           "Study"= rep(paste0(title.zeisel, "\n(G=", nrow(eZeisel),")"), nrow(pdZeisel))), 
+                data.frame("CDR" = pdTENx$CDRlt1, 
+                           "Study"= rep(paste0(title.zheng, "\n(G=", nrow(eTENx),")"), nrow(pdTENx))))
 
 scores$Study = factor(scores$Study, 
                       levels = names(sort(unlist(lapply( split(scores$CDR, factor(scores$Study)), median)), 
@@ -175,11 +190,11 @@ dev.off()
 # Histograms to explore threshold cutoff for detection rate
 ```{r Figure histograms to explore cutoff for CDR EDA}
 ind = 1
-
+x.title.lab <- "log2(expression + 1)"
 p.deng <- ggplot(melt(eDeng[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.deng) + 
+  xlab(x.title.lab) + labs(title = title.deng) + 
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -187,7 +202,7 @@ p.deng <- ggplot(melt(eDeng[,ind]), aes(x = value)) + geom_histogram(bins = 50) 
 p.guo <- ggplot(melt(eGuo[,ind]), aes(x = value)) + geom_histogram(bins = 50) + 
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.guo) +
+  xlab(x.title.lab) + labs(title = title.guo) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -195,7 +210,7 @@ p.guo <- ggplot(melt(eGuo[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
 p.kowalczyk <- ggplot(melt(eKowalczyk[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.kowalczyk) +
+  xlab(x.title.lab) + labs(title = title.kowalczyk) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -203,7 +218,7 @@ p.kowalczyk <- ggplot(melt(eKowalczyk[,ind]), aes(x = value)) + geom_histogram(b
 p.kumar <- ggplot(melt(eKumar[,ind]), aes(x = value)) + geom_histogram(bins = 50) + 
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.kumar) +
+  xlab(x.title.lab) + labs(title = title.kumar) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -211,7 +226,7 @@ p.kumar <- ggplot(melt(eKumar[,ind]), aes(x = value)) + geom_histogram(bins = 50
 p.patel <- ggplot(melt(patel_tpm[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.patel) +
+  xlab(x.title.lab) + labs(title = title.patel) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -219,7 +234,7 @@ p.patel <- ggplot(melt(patel_tpm[,ind]), aes(x = value)) + geom_histogram(bins =
 p.treutlein <- ggplot(melt(eTreutlein[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.treutlein) +
+  xlab(x.title.lab) + labs(title = title.treutlein) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -227,7 +242,7 @@ p.treutlein <- ggplot(melt(eTreutlein[,ind]), aes(x = value)) + geom_histogram(b
 p.shalek <- ggplot(melt(eShalek[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.shalek.2014) +
+  xlab(x.title.lab) + labs(title = title.shalek.2014) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -236,7 +251,7 @@ p.shalek <- ggplot(melt(eShalek[,ind]), aes(x = value)) + geom_histogram(bins = 
 p.trapnell <- ggplot(melt(eTrapnell[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.trapnell) +
+  xlab(x.title.lab) + labs(title = title.trapnell) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -245,7 +260,7 @@ p.trapnell <- ggplot(melt(eTrapnell[,ind]), aes(x = value)) + geom_histogram(bin
 p.burns <- ggplot(melt(eBurns[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.burns) +
+  xlab(x.title.lab) + labs(title = title.burns) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -253,15 +268,7 @@ p.burns <- ggplot(melt(eBurns[,ind]), aes(x = value)) + geom_histogram(bins = 50
 p.leng <- ggplot(melt(eLeng[,ind]), aes(x = value)) + geom_histogram(bins = 40) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.leng) +
-  theme(plot.title = element_text(size = 20),
-          axis.text = element_text(size = 20), 
-          axis.title = element_text(size = 20))
-
-p.bose <- ggplot(melt(eBose[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
-  geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
-  theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.bose) +
+  xlab(x.title.lab) + labs(title = title.leng) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -269,7 +276,7 @@ p.bose <- ggplot(melt(eBose[,ind]), aes(x = value)) + geom_histogram(bins = 50) 
 p.jaitin <- ggplot(melt(eJaitin[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.jaitin) +
+  xlab(x.title.lab) + labs(title = title.jaitin) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -277,7 +284,7 @@ p.jaitin <- ggplot(melt(eJaitin[,ind]), aes(x = value)) + geom_histogram(bins = 
 p.macosko <- ggplot(melt(eMacosko[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.macosko) +
+  xlab(x.title.lab) + labs(title = title.macosko) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -285,7 +292,7 @@ p.macosko <- ggplot(melt(eMacosko[,ind]), aes(x = value)) + geom_histogram(bins 
 p.satija <- ggplot(melt(eSatija[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.satija) +
+  xlab(x.title.lab) + labs(title = title.satija) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
@@ -293,15 +300,22 @@ p.satija <- ggplot(melt(eSatija[,ind]), aes(x = value)) + geom_histogram(bins = 
 p.zeisel <- ggplot(melt(eZeisel[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
   geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
   theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
-  xlab("Expression (log2)") + labs(title = title.zeisel) +
+  xlab(x.title.lab) + labs(title = title.zeisel) +
   theme(plot.title = element_text(size = 20),
           axis.text = element_text(size = 20), 
           axis.title = element_text(size = 20))
 
+p.zheng <- ggplot(melt(eTENx[,ind]), aes(x = value)) + geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept=1, color = "red"), size = 2) + 
+  theme(legend.position = "none") + coord_cartesian(ylim=c(0, 1000)) + 
+  xlab(x.title.lab) + labs(title = title.zheng) +
+  theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_text(size = 20))
 
 fig.hist.all15 <- plot_grid(p.deng, p.guo, p.kowalczyk, p.kumar, p.patel,
                         p.treutlein, p.shalek, p.trapnell, p.burns, p.leng,  
-                        p.bose, p.jaitin, p.macosko, p.satija, p.zeisel, 
+                        p.jaitin, p.macosko, p.satija, p.zeisel, p.zheng, 
                         labels = LETTERS[1:15], label_size = 25, ncol = 5)
 fig.hist.all15
 
@@ -494,22 +508,6 @@ PC1.Leng <- ggplot(scores, aes(x = CDR, y = colMeans)) +
     geom_point(aes(x = CDR, y = predMean, color = "red"), size = 2)
 
 
-##### Figure: Bose
-M <- 5e5
-p <- pdBose$CDR
-scores <- data.frame(pdBose,
-                     "predMean" = p * log( (M / (nrow(eBose)*p )) + 1)) 
-PC1.Bose <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
-    geom_point(size = 2, color = "black") + 
-    xlab("Detection rate") + 
-    ylab("Mean Cell Expression (log scale)") + 
-    labs(title = paste0("Bose et al., 2015")) + 
-    theme(plot.title = element_text(size = 20),
-          axis.text = element_text(size = 20), 
-          axis.title = element_blank(), 
-          legend.position="none") + 
-    geom_point(aes(x = CDR, y = predMean, color = "red"), size = 2)
-
 
 ##### Figure: Jaitin
 M <- 6e5 
@@ -529,7 +527,7 @@ PC1.Jaitin <- ggplot(scores, aes(x = CDR, y = colMeans)) +
 
 
 ##### Figure: Macosko
-M <- 5e6 
+M <- 6e5
 p <- pdMacosko$CDR
 scores <- data.frame(pdMacosko,
                      "predMean" = p * log( (M / (nrow(eMacosko)*p )) + 1)) 
@@ -578,10 +576,27 @@ PC1.Zeisel.B <- ggplot(scores, aes(x = CDR, y = colMeans)) +
           legend.position="none") +
      geom_point(aes(x = CDR, y = predMean, color = "red"), size = 2)
 
+##### Figure: Zheng
+M <- 5e5
+p <- pdTENx$CDR
+scores <- data.frame(pdTENx,
+                     "predMean" = p * log( (M / (nrow(eTENx)*p )) + 1)) 
+PC1.Zheng <- ggplot(scores, aes(x = CDR, y = colMeans)) + 
+    geom_point(size = 2, color = "black") + 
+    xlab("Detection rate") + 
+    ylab("Mean Cell Expression (log scale)") + 
+    labs(title = paste0("Zheng et al., 2017")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_blank(), 
+          legend.position="none") + 
+    geom_point(aes(x = CDR, y = predMean, color = "red"), size = 2)
+
+
 
 fig2.all15 <- plot_grid(PC1.Deng.D, PC1.Guo.B, PC1.Kowalczyk, PC1.Kumar.A, PC1.Patel,
                         PC1.Treutlein, PC1.Shalek, PC1.Trapnell, PC1.Burns.A, PC1.Leng,  
-                        PC1.Bose, PC1.Jaitin, PC1.Macosko, PC1.Satija, PC1.Zeisel.B, 
+                        PC1.Jaitin, PC1.Macosko, PC1.Satija, PC1.Zeisel.B, PC1.Zheng, 
                         labels = LETTERS[1:15], label_size = 25, ncol = 5)
 fig2.all15
 
@@ -775,24 +790,6 @@ PC1.Leng <- ggplot(scores, aes(x = CDRlt1, y = X1)) +
           axis.title = element_blank())
 
 
-##### Figure: Bose
-scores <- data.frame(pdBose, sBose$v[, 1:3])
-if(cor(scores$X1, scores$CDRlt1) < 0){ scores$X1 <- scores$X1*(-1) } 
-fit.lo <- loess(scores$X1 ~ poly(scores$CDRlt1, degree = 1))
-pc1Var <- c(sBose$d^2 / sum(sBose$d^2))[1]
-PC1.Bose <- ggplot(scores, aes(x = CDRlt1, y = X1)) + 
-    geom_point(size = 2, color = "black") + 
-    stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
-                se = FALSE, span = 0.75, size = 2) + 
-    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
-    xlab("Detection rate") + 
-    labs(title = paste0("Bose et al., 2015 (R^2: ", 
-                        round(1 - var(fit.lo$residuals)/var(scores$X1), 2), ")")) + 
-    theme(plot.title = element_text(size = 20),
-          axis.text = element_text(size = 20), 
-          axis.title = element_blank())
-
-
 ##### Figure: Jaitin
 scores <- data.frame(pdJaitin, sJaitin$v[, 1:3])
 if(cor(scores$X1, scores$CDRlt1) < 0){ scores$X1 <- scores$X1*(-1) } 
@@ -865,10 +862,27 @@ PC1.Zeisel.B <- ggplot(scores, aes(x = CDRlt1, y = X1)) +
           axis.text = element_text(size = 20), 
           axis.title = element_blank())
 
+##### Figure: Zheng
+scores <- data.frame(pdTENx, sTENx$v[, 1:3])
+if(cor(scores$X1, scores$CDRlt1) < 0){ scores$X1 <- scores$X1*(-1) } 
+fit.lo <- loess(scores$X1 ~ poly(scores$CDRlt1, degree = 1))
+pc1Var <- c(sTENx$d^2 / sum(sTENx$d^2))[1]
+PC1.Zheng <- ggplot(scores, aes(x = CDRlt1, y = X1)) + 
+    geom_point(size = 2, color = "black") + 
+    stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
+                se = FALSE, span = 0.05, size = 2) + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Detection rate") + 
+    labs(title = paste0("Zheng et al., 2017 (R^2: ", 
+                        round(1 - var(fit.lo$residuals)/var(scores$X1), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_blank())
+
 
 fig2.all15 <- plot_grid(PC1.Deng.D, PC1.Guo.B, PC1.Kowalczyk, PC1.Kumar.A, PC1.Patel,
                         PC1.Treutlein, PC1.Shalek, PC1.Trapnell, PC1.Burns.A, PC1.Leng,  
-                        PC1.Bose, PC1.Jaitin, PC1.Macosko, PC1.Satija, PC1.Zeisel.B, 
+                        PC1.Jaitin, PC1.Macosko, PC1.Satija, PC1.Zeisel.B, PC1.Zheng, 
                         labels = LETTERS[1:15], label_size = 25, ncol = 5)
 fig2.all15
 
@@ -881,6 +895,7 @@ dev.off()
 
 # Figure PC1 vs detection rate plots (USING detection rate lt1, detrended)
 ```{r Figure PC1 vs detection rate using lt1 detrended plots, fig.width=30, fig.height=18}
+# source(file.path(working_path, "loadData_colMeansRemoved.r"))
 
 ##### Figure: Deng
 scores <- data.frame(pdDeng[pdDeng$bin %in% c("Bin D"), ], sDeng.D$v[, 1:3])
@@ -1062,23 +1077,6 @@ PC1.Leng <- ggplot(scores, aes(x = CDRlt1, y = X1)) +
           axis.title = element_blank())
 
 
-##### Figure: Bose
-scores <- data.frame(pdBose, sBose$v[, 1:3])
-if(cor(scores$X1, scores$CDRlt1) < 0){ scores$X1 <- scores$X1*(-1) } 
-fit.lo <- loess(scores$X1 ~ poly(scores$CDRlt1, degree = 1))
-pc1Var <- c(sBose$d^2 / sum(sBose$d^2))[1]
-PC1.Bose <- ggplot(scores, aes(x = CDRlt1, y = X1)) + 
-    geom_point(size = 2, color = "black") + 
-    stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
-                se = FALSE, span = 0.75, size = 2) + 
-    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
-    xlab("Detection rate") + 
-    labs(title = paste0("Bose et al., 2015 (R^2: ", 
-                        round(1 - var(fit.lo$residuals)/var(scores$X1), 2), ")")) + 
-    theme(plot.title = element_text(size = 20),
-          axis.text = element_text(size = 20), 
-          axis.title = element_blank())
-
 
 ##### Figure: Jaitin
 scores <- data.frame(pdJaitin, sJaitin$v[, 1:3])
@@ -1107,7 +1105,7 @@ pc1Var <- c(sMacosko$d^2 / sum(sMacosko$d^2))[1]
 PC1.Macosko <- ggplot(scores, aes(x = CDRlt1, y = X1)) + 
     geom_point(size = 2, color = "black") + 
     stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
-                se = FALSE, span = 0.15, size = 2) + 
+                se = FALSE, span = 0.10, size = 2) + 
     ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
     xlab("Detection rate") + 
     labs(title = paste0("Macosko et al., 2015 (R^2: ", 
@@ -1153,11 +1151,30 @@ PC1.Zeisel.B <- ggplot(scores, aes(x = CDRlt1, y = X1)) +
           axis.title = element_blank())
 
 
+##### Figure: Zheng
+scores <- data.frame(pdTENx, sTENx$v[, 1:3])
+if(cor(scores$X1, scores$CDRlt1) < 0){ scores$X1 <- scores$X1*(-1) } 
+fit.lo <- loess(scores$X1 ~ poly(scores$CDRlt1, degree = 1))
+pc1Var <- c(sTENx$d^2 / sum(sTENx$d^2))[1]
+PC1.Zheng <- ggplot(scores, aes(x = CDRlt1, y = X1)) + 
+    geom_point(size = 2, color = "black") + 
+    stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
+                se = FALSE, span = 0.05, size = 2) + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Detection rate") + 
+    labs(title = paste0("Zheng et al., 2017 (R^2: ", 
+                        round(1 - var(fit.lo$residuals)/var(scores$X1), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_blank())
+
+
+
 fig2.all15 <- plot_grid(PC1.Deng.D, PC1.Guo.B, PC1.Kowalczyk, PC1.Kumar.A, PC1.Patel,
                         PC1.Treutlein, PC1.Shalek, PC1.Trapnell, PC1.Burns.A, PC1.Leng,  
-                        PC1.Bose, PC1.Jaitin, PC1.Macosko, PC1.Satija, PC1.Zeisel.B, 
+                        PC1.Jaitin, PC1.Macosko, PC1.Satija, PC1.Zeisel.B, PC1.Zheng, 
                         labels = LETTERS[1:15], label_size = 25, ncol = 5)
-fig2.all15
+# fig2.all15
 
 pdf(file.path(working_path, "scBatchFig2-all15-CDRlt1-detrended.pdf"), width = 30, height = 18)
 print(fig2.all15)
@@ -1349,23 +1366,6 @@ PC1.Leng <- ggplot(scores, aes(x = CDR, y = X1)) +
           axis.title = element_blank())
 
 
-##### Figure: Bose
-scores <- data.frame(pdBose, sBose$v[, 1:3])
-if(cor(scores$X1, scores$CDR) < 0){ scores$X1 <- scores$X1*(-1) } 
-fit.lo <- loess(scores$X1 ~ poly(scores$CDR, degree = 1))
-pc1Var <- c(sBose$d^2 / sum(sBose$d^2))[1]
-PC1.Bose <- ggplot(scores, aes(x = CDR, y = X1)) + 
-    geom_point(size = 2, color = "black") + 
-    stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
-                se = FALSE, span = 0.75, size = 2) + 
-    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
-    xlab("Detection rate") + 
-    labs(title = paste0("Bose et al., 2015 (R^2: ", 
-                        round(1 - var(fit.lo$residuals)/var(scores$X1), 2), ")")) + 
-    theme(plot.title = element_text(size = 20),
-          axis.text = element_text(size = 20), 
-          axis.title = element_blank())
-
 
 ##### Figure: Jaitin
 scores <- data.frame(pdJaitin, sJaitin$v[, 1:3])
@@ -1439,10 +1439,27 @@ PC1.Zeisel.B <- ggplot(scores, aes(x = CDR, y = X1)) +
           axis.text = element_text(size = 20), 
           axis.title = element_blank())
 
+##### Figure: Zheng
+scores <- data.frame(pdTENx, sTENx$v[, 1:3])
+if(cor(scores$X1, scores$CDR) < 0){ scores$X1 <- scores$X1*(-1) } 
+fit.lo <- loess(scores$X1 ~ poly(scores$CDR, degree = 1))
+pc1Var <- c(sTENx$d^2 / sum(sTENx$d^2))[1]
+PC1.Zheng <- ggplot(scores, aes(x = CDR, y = X1)) + 
+    geom_point(size = 2, color = "black") + 
+    stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
+                se = FALSE, span = 0.05, size = 2) + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Detection rate") + 
+    labs(title = paste0("Zheng et al., 2017 (R^2: ", 
+                        round(1 - var(fit.lo$residuals)/var(scores$X1), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_blank())
+
 
 fig2.all15 <- plot_grid(PC1.Deng.D, PC1.Guo.B, PC1.Kowalczyk, PC1.Kumar.A, PC1.Patel,
                         PC1.Treutlein, PC1.Shalek, PC1.Trapnell, PC1.Burns.A, PC1.Leng,  
-                        PC1.Bose, PC1.Jaitin, PC1.Macosko, PC1.Satija, PC1.Zeisel.B, 
+                        PC1.Jaitin, PC1.Macosko, PC1.Satija, PC1.Zeisel.B, PC1.Zheng, 
                         labels = LETTERS[1:15], label_size = 25, ncol = 5)
 fig2.all15
 
@@ -1454,6 +1471,8 @@ dev.off()
 
 # Figure PC1 vs detection rate plots (USING detection rate, detrended)
 ```{r Figure PC1 vs detection rate detrended plots, fig.width=30, fig.height=18}
+# source(file.path(working_path, "loadData_colMeansRemoved.r"))
+
 ##### Figure: Deng
 scores <- data.frame(pdDeng[pdDeng$bin %in% c("Bin D"), ], sDeng.D$v[, 1:3])
 scores <- scores[scores$CDR < 0.5, ]
@@ -1635,24 +1654,6 @@ PC1.Leng <- ggplot(scores, aes(x = CDR, y = X1)) +
           axis.title = element_blank())
 
 
-##### Figure: Bose
-scores <- data.frame(pdBose, sBose$v[, 1:3])
-if(cor(scores$X1, scores$CDR) < 0){ scores$X1 <- scores$X1*(-1) } 
-fit.lo <- loess(scores$X1 ~ poly(scores$CDR, degree = 1))
-pc1Var <- c(sBose$d^2 / sum(sBose$d^2))[1]
-PC1.Bose <- ggplot(scores, aes(x = CDR, y = X1)) + 
-    geom_point(size = 2, color = "black") + 
-    stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
-                se = FALSE, span = 0.75, size = 2) + 
-    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
-    xlab("Detection rate") + 
-    labs(title = paste0("Bose et al., 2015 (R^2: ", 
-                        round(1 - var(fit.lo$residuals)/var(scores$X1), 2), ")")) + 
-    theme(plot.title = element_text(size = 20),
-          axis.text = element_text(size = 20), 
-          axis.title = element_blank())
-
-
 ##### Figure: Jaitin
 scores <- data.frame(pdJaitin, sJaitin$v[, 1:3])
 if(cor(scores$X1, scores$CDR) < 0){ scores$X1 <- scores$X1*(-1) } 
@@ -1680,7 +1681,7 @@ pc1Var <- c(sMacosko$d^2 / sum(sMacosko$d^2))[1]
 PC1.Macosko <- ggplot(scores, aes(x = CDR, y = X1)) + 
     geom_point(size = 2, color = "black") + 
     stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
-                se = FALSE, span = 0.15, size = 2) + 
+                se = FALSE, span = 0.10, size = 2) + 
     ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
     xlab("Detection rate") + 
     labs(title = paste0("Macosko et al., 2015 (R^2: ", 
@@ -1726,11 +1727,30 @@ PC1.Zeisel.B <- ggplot(scores, aes(x = CDR, y = X1)) +
           axis.title = element_blank())
 
 
+
+##### Figure: Zheng
+scores <- data.frame(pdTENx, sTENx$v[, 1:3])
+if(cor(scores$X1, scores$CDR) < 0){ scores$X1 <- scores$X1*(-1) } 
+fit.lo <- loess(scores$X1 ~ poly(scores$CDR, degree = 1))
+pc1Var <- c(sTENx$d^2 / sum(sTENx$d^2))[1]
+PC1.Zheng <- ggplot(scores, aes(x = CDR, y = X1)) + 
+    geom_point(size = 2, color = "black") + 
+    stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
+                se = FALSE, span = 0.05, size = 2) + 
+    ylab(paste0("Principal Component 1 (", round(pc1Var,2)*100, "%)")) + 
+    xlab("Detection rate") + 
+    labs(title = paste0("Zheng et al., 2017 (R^2: ", 
+                        round(1 - var(fit.lo$residuals)/var(scores$X1), 2), ")")) + 
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_blank())
+
+
+
 fig2.all15 <- plot_grid(PC1.Deng.D, PC1.Guo.B, PC1.Kowalczyk, PC1.Kumar.A, PC1.Patel,
                         PC1.Treutlein, PC1.Shalek, PC1.Trapnell, PC1.Burns.A, PC1.Leng,  
-                        PC1.Bose, PC1.Jaitin, PC1.Macosko, PC1.Satija, PC1.Zeisel.B, 
+                        PC1.Jaitin, PC1.Macosko, PC1.Satija, PC1.Zeisel.B, PC1.Zheng, 
                         labels = LETTERS[1:15], label_size = 25, ncol = 5)
-fig2.all15
 
 pdf(file.path(working_path, "scBatchFig2-all15-CDR-detrended.pdf"), width = 30, height = 18)
 print(fig2.all15)
@@ -1868,8 +1888,8 @@ Patel et al. (2014) counts came from [GitHub repo](https://github.com/willtownes
 and the Trapnell et al. (2014) counts came from the [conquer database](http://imlspenticton.uzh.ch:3838/conquer/). 
 ```{r patel and trapnell counts vs seq depth}
 # Patel 
-data(patel2014gliohuman_counts) # object name: patel_glio_2014
-patel_pd$cS = colSums(as.data.frame(as.matrix(assay(patel_glio_2014)))) / 1e6
+data(patel_counts) # object name: patel_counts
+patel_pd$cS = colSums(as.data.frame(as.matrix(assay(patel_counts)))) / 1e6
 
 ID <- patel_pd$includeSample == TRUE & patel_pd$sampleType == "SC" & 
   patel_pd$cellType == "Glioblastoma"
@@ -1890,22 +1910,20 @@ i = 1
 gseObject1 <- readRDS(file.path(conquer_data_path, loadFiles[i]))
 gseObject_gene <- experiments(gseObject1)[["gene"]]
 eset <- assays(gseObject_gene)[["count"]]
-libSize <- colSums(eset)/1e6
+libSize_gse1 <- colSums(eset)/1e6
 eset <- assays(gseObject_gene)[["TPM"]]
-CDR <- colMeans(eset > 1)
+CDR_gse1 <- colMeans(eset > 1)
 
 
 i = 2
 gseObject2 <- readRDS(file.path(conquer_data_path, loadFiles[i]))
 gseObject_gene <- experiments(gseObject2)[["gene"]]
 eset <- assays(gseObject_gene)[["count"]]
-libSize <- c(libSize, colSums(eset)/1e6)
+libSize_gse2 <- c(libSize, colSums(eset)/1e6)
 eset <- assays(gseObject_gene)[["TPM"]]
-CDR <- c(CDR, colMeans(eset > 1))
+CDR_gse2 <- c(CDR, colMeans(eset > 1))
  
-pd <- rbind(pData(gseObject1), pData(gseObject2))
-pd$CDR <- CDR
-pd$libSize <- libSize
+pd <- data.frame("libSize"=c(libSize_gse1, libSize_gse2), "CDR" = c(CDR_gse1, CDR_gse2))
 
   
 pdf(file.path(working_path, "scBatchSuppFig-Patel-libSizeCDR.pdf"), width = 12, height = 6)
@@ -1915,10 +1933,6 @@ plot(pdSub$cS, pdSub$CDR, xlab = "Sequencing depth",
 plot(pd$libSize, pd$CDR, xlab = "Sequencing depth", 
      ylab = "Detection rate", main = "Trapnell et al. (2014)", pch = 16)
 dev.off()
-
-
-
-
 
 
 
@@ -2220,20 +2234,6 @@ pMed.Leng <- ggplot(dat, aes(x = CDR, y = value, colour = Quantile)) +
           axis.title = element_blank(), 
           legend.position = "none")
 
-
-dat <- tidyQuants(eBose, CDRval = pdBose$CDRlt1, qRange = qVals)
-pMed.Bose <- ggplot(dat, aes(x = CDR, y = value, colour = Quantile)) +
-    stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
-                se = FALSE, span = 0.75, size = 2) + 
-    geom_point(size = 2) + 
-    xlab("Detection rate") + ylab("Expression (log2)") + 
-    labs(title = title.bose) + 
-    theme(plot.title = element_text(size =20),
-          axis.text = element_text(size = 20), 
-          axis.title = element_blank(),  
-          legend.position = "none")
-
-
 dat <- tidyQuants(eJaitin, CDRval = pdJaitin$CDRlt1, qRange = qVals)
 pMed.Jaitin <- ggplot(dat, aes(x = CDR, y = value, colour = Quantile)) +
     stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
@@ -2290,7 +2290,7 @@ dat <- tidyQuants(eZeisel[, pdZeisel$tissue == "ca1hippocampus"],
                   qRange = qVals)
 pMed.Zeisel.B <- ggplot(dat, aes(x = CDR, y = value, colour = Quantile)) +
     stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
-                se = FALSE, span = 0.75, size = 2) + 
+                se = FALSE, span = 0.75, size = 4) + 
     geom_point(size = 2) + 
     xlab("Detection rate") + ylab("Expression (log2)") + 
     labs(title = "Zeisel et al., 2015 (Group B)") + 
@@ -2298,8 +2298,10 @@ pMed.Zeisel.B <- ggplot(dat, aes(x = CDR, y = value, colour = Quantile)) +
           axis.text = element_text(size = 20), 
           axis.title = element_text(size =20), 
           legend.text = element_text(size =40), 
-          legend.title = element_text(size =40), 
-          legend.position = "top")
+          legend.title = element_text(size =40),
+          legend.key.size = unit(2,"cm"), 
+          legend.position = "top", 
+          legend.title.align = 0.5)
 legend <- get_legend(pMed.Zeisel.B)
 
 pMed.Zeisel.B <- ggplot(dat, aes(x = CDR, y = value, colour = Quantile)) +
@@ -2313,16 +2315,32 @@ pMed.Zeisel.B <- ggplot(dat, aes(x = CDR, y = value, colour = Quantile)) +
           axis.title = element_blank(), 
           legend.position = "none")
 
+
+dat <- tidyQuants(as.matrix(eTENx), CDRval = pdTENx$CDRlt1, qRange = qVals)
+pMed.Zheng <- ggplot(dat, aes(x = CDR, y = value, colour = Quantile)) +
+    stat_smooth(method = "loess", formula = y ~ poly(x, degree = 1), 
+                se = FALSE, span = 0.2, size = 2) + 
+    geom_point(size = 2) + 
+    xlab("Detection rate") + ylab("Expression (log2)") + 
+    labs(title = title.zheng) + 
+    theme(plot.title = element_text(size =20),
+          axis.text = element_text(size = 20), 
+          axis.title = element_blank(),  
+          legend.position = "none")
+
 pout <- plot_grid(pMed.Deng.D, pMed.Guo.A , pMed.Kowalczyk, pMed.Kumar.C, pMed.Patel,
                         pMed.Treutlein, pMed.Shalek, pMed.Trapnell, pMed.Burns.A, pMed.Leng,
-                        pMed.Bose, pMed.Jaitin, pMed.Macosko, pMed.Satija, pMed.Zeisel.B, 
+                        pMed.Jaitin, pMed.Macosko, pMed.Satija, pMed.Zeisel.B, pMed.Zheng,
                         labels = LETTERS[1:15], label_size = 25, ncol = 5)
-
-
-p <- plot_grid(legend, pout, ncol = 1, rel_heights = c(.5, 4))
+p.legend <- plot_grid(legend)
 pdf(file.path(working_path, "scBatchSuppFig-kaboxplot.pdf"), width = 30, height = 18)
-print(p)
+print(pout)
 dev.off()
+
+pdf(file.path(working_path, "scBatchSuppFig-kaboxplot-legend.pdf"), width = 10, height = 5)
+plot(p.legend)
+dev.off()
+
 
 ```
 
@@ -3392,9 +3410,9 @@ smDat <- sm(x=xx, y =yy)
 lines(smDat$x, smDat$y, lwd = 5, col = 4)
 
 dev.off()
-
-
 ```
+
+
 
 
 ```{r}

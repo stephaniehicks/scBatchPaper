@@ -1,7 +1,6 @@
 #### Load libraries
 library(Biobase)
 library(GenomicRanges)
-library(vcd)
 library(stringr)
 library(reshape2)
 library(tidyr)
@@ -25,7 +24,6 @@ pd$CDRlt1 <- colMeans(eset > 1)
 pdDeng <- pd
 eDeng <- log(eset + 1) # log transform RPKMs
 pdDeng$colMeans <- colMeans(eDeng)
-eDeng <- sweep(eDeng, 2, pdDeng$colMeans, FUN = "-")
 
 zz <- levels(pdDeng$time)
 pdDeng$bin <- ifelse(pdDeng$time %in% zz[1:2], "Bin A",
@@ -61,7 +59,6 @@ eset = sweep(eset, 2, colSums(eset)/1e6, FUN = "/")
 pdJaitin <- pd
 eJaitin <- log(eset + 1) # log transform barcoded molecules
 pdJaitin$colMeans <- colMeans(eJaitin)
-eJaitin <- sweep(eJaitin, 2, pdJaitin$colMeans, FUN = "-")
 
 print("[Data loaded]: Jaitin et al. (2014)")
 
@@ -94,7 +91,6 @@ pd$bin <- ifelse(keeCDRcr8, "Group A", ifelse(keepv6.5serum, "Group B", "Group C
 pdKumar <- pd
 eKumar <- log(eset+1)
 pdKumar$colMeans <- colMeans(eKumar)
-eKumar <- sweep(eKumar, 2, pdKumar$colMeans, FUN = "-")
 
 print("[Data loaded]: Kumar et al. (2014)")
 
@@ -103,12 +99,12 @@ print("[Data loaded]: Kumar et al. (2014)")
 #### Load Patel et al. (2014) TPM and phenotypic data
 library(SummarizedExperiment)
 library(patel2014gliohuman) # install_github("willtownes/patel2014gliohuman")
-data(patel2014gliohuman_tpm) # object name: patel_glio_2014_tpm
-data(patel2014gliohuman_counts) # object name: patel_glio_2014
+data(patel_tpm)
+data(patel_counts) 
 
-patel_pd = colData(patel_glio_2014_tpm)
+patel_pd = colData(patel_tpm)
 
-patel_tpm = as.data.frame(as.matrix(assay(patel_glio_2014_tpm)))
+patel_tpm = as.data.frame(as.matrix(assay(patel_tpm)))
 patel_pd$CDR <- colMeans(patel_tpm != 0)
 patel_pd$CDRlt1 <- colMeans(patel_tpm > 1)
 
@@ -124,7 +120,6 @@ pd$CDRlt1 <- patel_pd$CDRlt1[match(rownames(pd), patel_pd$Run)]
 ePatel <- eset[, pd$sampleType == "SC"]
 pdPatel <- pd[pd$sampleType == "SC", ]
 pdPatel$colMeans <- colMeans(ePatel) # centered around 0 because row means removed
-ePatel <- sweep(ePatel, 2, pdPatel$colMeans, FUN = "-")
 
 print("[Data loaded]: Patel et al. (2014)")
 
@@ -169,7 +164,6 @@ pdShalek <- pd[keepIDs, ]
 pdShalek$batch <- factor(paste(pdShalek$runID, pdShalek$fcLane, sep = "_"))
 levels(pdShalek$batch) <- paste0("Batch ", 1:4)
 pdShalek$colMeans <- colMeans(eShalek)
-eShalek <- sweep(eShalek, 2, pdShalek$colMeans, FUN = "-")
 
 print("[Data loaded]: Shalek et al. (2014)")
 
@@ -201,7 +195,6 @@ pd$CDRlt1 <- colMeans(eset > 1)
 pdTrapnell <- pd
 eTrapnell <- log(eset + 1) # log transform FPKMs
 pdTrapnell$colMeans <- colMeans(eTrapnell)
-eTrapnell <- sweep(eTrapnell, 2, pdTrapnell$colMeans, FUN = "-")
 
 print("[Data loaded]: Trapnell et al. (2014)")
 
@@ -231,41 +224,8 @@ pdTreutlein <- pd
 eTreutlein <- log(eset + 1) # log transform FPKMs
 levels(pdTreutlein$day) <- c(levels(pdTreutlein$day)[1:3], "Adult")
 pdTreutlein$colMeans <- colMeans(eTreutlein)
-eTreutlein <- sweep(eTreutlein, 2, pdTreutlein$colMeans, FUN = "-")
 
 print("[Data loaded]: Treutlein et al. (2014)")
-
-
-
-#### Load Bose et al. (2015) UMI and phenotypic data
-library(scRNASeqHumanBosePrinting)
-data("printHumanUMI_PS041")
-
-eset <- exprs(printHumanUMI_PS041)
-pd <- pData(printHumanUMI_PS041)
-
-# calculate CDR
-pd$CDR <- colMeans(eset != 0)
-pd$CDRlt1 <- colMeans(eset > 1)
-pd$libSize <- colSums(eset)
-
-pd$textFile <- laply(str_split(pd$title, "_"), function(x){ x[1] })
-pd$source_name_ch1 <- factor(pd$source_name_ch1)
-pd$batch <- factor(pd$description)
-levels(pd$batch) <- paste("Batch", 1:5)
-pd$group <- pd$source_name_ch1
-levels(pd$group)[1] <- c("mix U87 and WI-38")
-
-eset = sweep(eset, 2, pd$libSize/1e6, FUN = "/")
-
-pdBose <- pd
-eBose <- log(eset+1) # log transform FPKMs
-pdBose$colMeans <- colMeans(eBose)
-eBose <- sweep(eBose, 2, pdBose$colMeans, FUN = "-")
-
-print("[Data loaded]: Bose et al. (2015)")
-
-
 
 
 #### Load Burns et al. (2015) TPM and phenotypic data
@@ -309,7 +269,6 @@ pdBurns$batch <- factor(pdBurns$batch)
 pdBurns$tissue <- factor(pdBurns$tissue)
 
 pdBurns$colMeans <- colMeans(eBurns)
-eBurns <- sweep(eBurns, 2, pdBurns$colMeans, FUN = "-")
 
 print("[Data loaded]: Burns et al. (2015)")
 
@@ -346,7 +305,6 @@ pdGuo <- pd[keepMe, ]
 eGuo <- log(eset[,keepMe] + 1) # log transform FPKMs
 
 pdGuo$colMeans <- colMeans(eGuo)
-eGuo <- sweep(eGuo, 2, pdGuo$colMeans, FUN = "-")
 
 
 pdGuo$batch <- factor(pdGuo$batch)
@@ -385,7 +343,6 @@ keepMe <- pd$celltype == "shortTermHSC"
 pdKowalczyk <- pd[keepMe, ]
 eKowalczyk <- log(eset[, keepMe]+1)
 pdKowalczyk$colMeans <- colMeans(eKowalczyk)
-eKowalczyk <- sweep(eKowalczyk, 2, pdKowalczyk$colMeans, FUN = "-")
 
 print("[Data loaded]: Kowalczyk et al. (2015)")
 
@@ -417,14 +374,13 @@ pdLeng <- pd[keepMe, ]
 eLeng <- log(eset[, keepMe] + 1) # log transform FPKMs
 
 pdLeng$colMeans <- colMeans(eLeng)
-eLeng <- sweep(eLeng, 2, pdLeng$colMeans, FUN = "-")
 
 print("[Data loaded]: Leng et al. (2015)")
 
 
 
 #### Load Macosko et al. (2015) UMI and phenotypic data
-load("/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/retinaMouseUMI.rda")
+load("/net/irizarryfs01/srv/export/irizarryfs01_backed_up/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/retinaMouseUMI.rda")
 
 pdMacosko <- pData(retinaMouseUMI)
 eset <- exprs(retinaMouseUMI)
@@ -441,8 +397,8 @@ rm(eset, retinaMouseUMI)
 # tmp = colSums(eset)/1e6
 # eset = sweep(eset, 2, tmp, FUN = "/")
 # eMacosko <- log(eset + 1) # log transform normalized UMIs
-# save(eMacosko, file = "/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/eMacosko16.rda")
-load("/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/eMacosko16.rda")
+# save(eMacosko, file = "/net/irizarryfs01/srv/export/irizarryfs01_backed_up/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/eMacosko16log.rda")
+load("/net/irizarryfs01/srv/export/irizarryfs01_backed_up/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/eMacosko16log.rda")
 
 pdMacosko$colMeans <- colMeans(eMacosko)
 
@@ -473,7 +429,6 @@ eset = sweep(eset, 2, colSums(eset)/1e6, FUN = "/")
 eSatija <- log(eset + 1) # log transform normalized UMIs
 pdSatija <- pd
 pdSatija$colMeans <- colMeans(eSatija)
-eSatija <- sweep(eSatija, 2, colMeans(eSatija), FUN = "-")
 
 print("[Data loaded]: Satija et al. (2015)")
 
@@ -483,7 +438,7 @@ print("[Data loaded]: Satija et al. (2015)")
 library(scRNASeqMouseZeiselCortex)
 data("cortexMouseUMI")
 
-eset <- counts(cortexMouseUMI)
+eset <- Biobase::assayDataElement(cortexMouseUMI, "counts")
 pd <- pData(cortexMouseUMI)
 
 eset <- eset[, !(pd$level2class == "(none)")] # remove the '(none)' class making it 47 discovered
@@ -504,7 +459,25 @@ eZeisel <- log(eset + 1) # log transform normalized UMIs
 pdZeisel <- pd
 
 pdZeisel$colMeans <- colMeans(eZeisel)
-eZeisel <- sweep(eZeisel, 2, pdZeisel$colMeans, FUN = "-")
 
 print("[Data loaded]: Zeisel et al. (2015)")
+
+
+#### Load Zheng et al. (2017) UMI and phenotypic data
+library(TENxGenomics)
+library(HDF5Array)
+options(DelayedArray.block.size=2e8)
+
+zheng_path <- "/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/TENxGenomics/1M_neurons"
+
+# see preprocessData.r for QC of Zheng et al. (2017) data
+se.out <- readRDS(file=file.path(zheng_path, "qc_mat.rds"))
+
+expr.mat <- assay(se.out, "exprs", withDimnames=FALSE)
+eTENx <- log(2^(expr.mat))
+colData(se.out)$colMeans <- colMeans(eTENx)
+pdTENx <- colData(se.out)
+
+print("[Data loaded]: Zheng et al. (2017)")
+
 

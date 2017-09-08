@@ -1,5 +1,5 @@
 This repository contains the source code for the manuscript: 
 
-## On the widespread and critical impact of systematic bias and batch effects in single-cell RNA-Seq data
-#### authored by Stephanie C. Hicks, Mingxiang Teng and Rafael A. Irizarry
+## Missing Data and Technical Variability in Single-Cell RNA-Sequencing Experiments
+#### authored by Stephanie C. Hicks, F. William Townes, Mingxiang Teng and Rafael A. Irizarry
 

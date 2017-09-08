@@ -1,7 +1,6 @@
 #### Load libraries
 library(Biobase)
 library(GenomicRanges)
-library(vcd)
 library(stringr)
 library(reshape2)
 library(tidyr)
@@ -127,12 +126,12 @@ print("[Data loaded]: Kumar et al. (2014)")
 #### Load Patel et al. (2014) TPM and phenotypic data
 library(SummarizedExperiment)
 library(patel2014gliohuman) # install_github("willtownes/patel2014gliohuman")
-data(patel2014gliohuman_tpm) # object name: patel_glio_2014_tpm
-data(patel2014gliohuman_counts) # object name: patel_glio_2014
+data(patel_tpm)
+data(patel_counts) 
 
-patel_pd = colData(patel_glio_2014_tpm)
+patel_pd = colData(patel_tpm)
 
-patel_tpm = as.data.frame(as.matrix(assay(patel_glio_2014_tpm)))
+patel_tpm = as.data.frame(as.matrix(assay(patel_tpm)))
 patel_pd$CDR <- colMeans(patel_tpm != 0)
 patel_pd$CDRlt1 <- colMeans(patel_tpm > 1)
 
@@ -275,39 +274,6 @@ sTreutlein <- svd(dat)
 
 print("[Data loaded]: Treutlein et al. (2014)")
 
-
-
-#### Load Bose et al. (2015) UMI and phenotypic data
-library(scRNASeqHumanBosePrinting)
-data("printHumanUMI_PS041")
-
-eset <- exprs(printHumanUMI_PS041)
-pd <- pData(printHumanUMI_PS041)
-
-# calculate CDR
-pd$CDR <- colMeans(eset != 0)
-pd$CDRlt1 <- colMeans(eset > 1)
-pd$libSize <- colSums(eset)
-
-pd$textFile <- laply(str_split(pd$title, "_"), function(x){ x[1] })
-pd$source_name_ch1 <- factor(pd$source_name_ch1)
-pd$batch <- factor(pd$description)
-levels(pd$batch) <- paste("Batch", 1:5)
-pd$group <- pd$source_name_ch1
-levels(pd$group)[1] <- c("mix U87 and WI-38")
-
-eset = sweep(eset, 2, pd$libSize/1e6, FUN = "/")
-
-pdBose <- pd
-eBose <- log2(eset+1) # log2 transform FPKMs
-pdBose$colMeans <- colMeans(eBose)
-eBose <- sweep(eBose, 2, pdBose$colMeans, FUN = "-")
-
-# calculate SVD
-dat <- sweep(eBose, 1, rowMeans(eBose), FUN = "-")
-sBose <- svd(dat)
-
-print("[Data loaded]: Bose et al. (2015)")
 
 
 
@@ -494,7 +460,7 @@ print("[Data loaded]: Leng et al. (2015)")
 
 
 #### Load Macosko et al. (2015) UMI and phenotypic data
-load("/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/retinaMouseUMI.rda")
+load("/net/irizarryfs01/srv/export/irizarryfs01_backed_up/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/retinaMouseUMI.rda")
 
 pdMacosko <- pData(retinaMouseUMI)
 eset <- exprs(retinaMouseUMI)
@@ -511,8 +477,8 @@ rm(eset, retinaMouseUMI)
 # tmp = colSums(eset)/1e6
 # eset = sweep(eset, 2, tmp, FUN = "/")
 # eMacosko <- log2(eset + 1) # log2 transform normalized UMIs
-# save(eMacosko, file = "/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/eMacosko16.rda")
-load("/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/eMacosko16.rda")
+# save(eMacosko, file = "net/irizarryfs01/srv/export/irizarryfs01_backed_up/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/eMacosko16.rda")
+load("/net/irizarryfs01/srv/export/irizarryfs01_backed_up/share_root/shicks/dataPackages/scRNASeqMouseMacoskoRetina/data/eMacosko16.rda")
 
 pdMacosko$colMeans <- colMeans(eMacosko)
 dat <- sweep(eMacosko, 2, pdMacosko$colMeans, FUN = "-")
@@ -563,7 +529,7 @@ print("[Data loaded]: Satija et al. (2015)")
 library(scRNASeqMouseZeiselCortex)
 data("cortexMouseUMI")
 
-eset <- counts(cortexMouseUMI)
+eset <- Biobase::assayDataElement(cortexMouseUMI, "counts")
 pd <- pData(cortexMouseUMI)
 
 eset <- eset[, !(pd$level2class == "(none)")] # remove the '(none)' class making it 47 discovered
@@ -595,7 +561,29 @@ dat <- sweep(eZeisel[, pdZeisel$tissue == "ca1hippocampus"], 1,
              rowMeans(eZeisel[, pdZeisel$tissue == "ca1hippocampus"]), FUN = "-")
 sZeisel.B <- irlba(dat, nv = 3)
 
-
-
 print("[Data loaded]: Zeisel et al. (2015)")
+
+
+
+
+#### Load Zheng et al. (2017) UMI and phenotypic data
+library(TENxGenomics)
+library(HDF5Array)
+options(DelayedArray.block.size=2e8)
+
+zheng_path <- "/net/irizarryfs01/srv/export/irizarryfs01/share_root/shicks/TENxGenomics/1M_neurons"
+
+# see preprocessData.r for QC of Zheng et al. (2017) data
+se.out <- readRDS(file=file.path(zheng_path, "qc_mat.rds"))
+
+expr.mat <- assay(se.out, "exprs", withDimnames=FALSE)
+colData(se.out)$colMeans <- colMeans(expr.mat)
+pdTENx <- colData(se.out)
+
+eTENx <- t(t(expr.mat) - t(t(pdTENx$colMeans)))
+
+# Compute first 3 PCs (approximate) using irlba pkg
+sTENx <- readRDS(file=file.path(zheng_path, "pca_results_colMeansRemoved.rds"))
+
+print("[Data loaded]: Zheng et al. (2017)")
 
