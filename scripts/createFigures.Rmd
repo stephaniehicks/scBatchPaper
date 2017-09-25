@@ -2829,7 +2829,143 @@ dev.off()
 
 ```
 
-# Figure - Bulk vs SC scatter plot
+
+# Figure - Bulk vs SC scatter and MA plot - Shalek et al. (2013)
+```{r}
+pdf(file.path(working_path, "Figure_scatter_reproduce_shalek.pdf"), width = 16, height = 8) 
+par(mfrow=c(1,2), mgp=c(3,1,0), mar=c(5, 5, 4, 2), # mai=c(0.75,2,0.4,0.1),  
+    cex.lab=1.75, cex.axis=1.75, cex.main=1.75, cex.sub=1.75)
+
+#### Shalek et al. (2013)
+library(scRNASeqMouseShalekBMDCs)
+data("BMDCsMouseTPM")
+
+eset <- exprs(BMDCsMouseTPM)
+pd <- pData(BMDCsMouseTPM)
+
+esetBulk <- eset[, pd$sampleType == "bulk"]
+esetSC <- eset[, pd$sampleType == "SC"]
+
+xx = esetBulk[,1];
+yy = esetSC
+plot(x = log2(xx+1), y = log2(rowMeans(yy)+1), col = "black", pch = ".",
+     xlim = c(0, 15), ylim = c(0, 15),
+     xlab = expression("log"[2]*"(bulk profile)"),
+     ylab = expression("log"[2]*"(single-cell profile average)"),
+     main = paste0("Scatter plot"))
+abline(0, 1, col = 2, lwd = 3)
+cor(log2(xx+1), log2(rowMeans(yy)+1)) 
+mtext("A", side = 3, 1, cex = 3, at = -1.5)
+
+#########################  ma plot 
+
+
+xx = (log2(esetBulk[,1]+1) + log2(rowMeans(esetSC)+1))/2
+yy = log2(rowMeans(esetSC)+1) - log2(esetBulk[,1]+1)
+yy <- yy[order(xx)]
+xx <- sort(xx)
+plot(x = xx, y = yy, ylim = c(-5, 5), pch = ".",
+       xlab = expression("A = (log"[2]*"(single-cell profile avg) + log"[2]*"(bulk profile))/2"),
+       ylab = expression("M = log"[2]*"(single-cell profile avg) - log"[2]*"(bulk profile)"),
+       main = paste0("MA plot"))
+  abline(h = 0, col = 2, lwd = 3)
+  smDat <- sm(x = xx, y = yy)
+  lines(smDat$x, smDat$y, lwd = 7, col = 4, lty=2)
+mtext("B", side = 3, 1, cex = 3, at = -1.5)
+
+dev.off()
+
+```
+
+
+# Figure - Bulk vs SC scatter plot (without curve)
+```{r}
+pdf(file.path(working_path, "Figure_scatter-withoutblueline.pdf"), width = 18, height =6) 
+par(mfrow=c(1,3), mai=c(0.75,0.75,0.4,0.1), mgp=c(3.3,1.25,0),
+    cex.lab=2.25, cex.axis=2.25, cex.main=2.25, cex.sub=2.25)
+
+#### Shalek et al. (2013)
+library(scRNASeqMouseShalekBMDCs)
+data("BMDCsMouseTPM")
+
+eset <- exprs(BMDCsMouseTPM)
+pd <- pData(BMDCsMouseTPM)
+
+esetBulk <- eset[, pd$sampleType == "bulk"]
+esetSC <- eset[, pd$sampleType == "SC"]
+
+xx = esetBulk[,1];
+yy = esetSC
+smDat <- sm(x=xx, y =rowMeans(yy), n.bins = 50)
+plot(x = xx, y = rowMeans(yy), col = "gray", pch = ".", 
+     xlim = c(0, 30), ylim = c(0, 30),  
+     xlab = "Bulk profile", ylab = "Average single-cell profile", 
+     main = paste0("Shalek et al. (2013)"))
+lines(smDat$x, smDat$pred, lwd = 3)
+points(smDat$x, smDat$y, col = 2, pch = 17, cex = 2)
+
+
+#### Wu et al. (2014)
+library(scRNASeqHCT116CellLinesWu)
+data(eset_wu)
+
+eset <- exprs(eset_wu)
+fd <- fData(eset_wu)
+pd <- pData(eset_wu)
+xx = eset[,1];
+yy = eset[,5:100]
+smDat <- sm(x=xx, y =rowMeans(yy), n.bins = 25)
+smDat <- smDat[-c(1:2),] 
+plot(x = xx, y = rowMeans(yy), col = "gray", pch = ".", 
+     xlim = c(0, 50), ylim = c(0, 50),  
+     xlab = "Bulk profile", ylab = "Average single-cell profile", 
+     main = paste0("Wu et al. (2014)"))
+lines(smDat$x, smDat$pred, lwd = 3)
+points(smDat$x, smDat$y, col = 2, pch = 17, cex = 2)
+
+
+
+# Trapnell et al. (2014)
+library(trapnell2014myoblasthuman)
+data("trapnell2014myoblasthuman")
+
+pd <- pData(trapnell2014myoblasthuman)
+eset <- exprs(trapnell2014myoblasthuman)
+
+# pick out only single cells and bulk cells; remove debris wells
+pd <- pd[pd$debris == "debris: FALSE" &
+         pd$numcells %in% c("cells in well: 1", 
+                            "cells in well: ~200000"), ]
+eset <- eset[, match(rownames(pd), colnames(eset))]
+eset <- eset[rowSums(eset) > 0, ]
+
+pd$batch <- factor(paste(pd$runID, pd$fcLane, sep = "_"))
+pd$hour <- factor(pd$hour, levels = levels(pd$hour)[c(2,3,4,1)])
+levels(pd$hour) <- (c("0h", "24h", "48h", "72h"))
+
+tme = 4
+esetSub <- eset[, pd$hour == levels(pd$hour)[tme]]
+pdSub <- pd[pd$hour == levels(pd$hour)[tme], ]
+
+esetBulk <- esetSub[, pdSub$sampleType == "bulk"]
+esetSC <- esetSub[, pdSub$numcells == "cells in well: 1"]
+
+xx = esetBulk[,1]
+yy = esetSC
+smDat <- sm(x=xx, y =rowMeans(yy), n.bins = 30)
+plot(x = xx, y = rowMeans(yy), col = "gray", pch = ".", 
+     xlim = c(0, 30), ylim = c(0, 30),  
+     xlab = "Bulk profile", ylab = "Average single-cell profile", 
+     main = paste0("Trapnell et al. (2014)"))
+lines(smDat$x, smDat$pred, lwd = 3)
+points(smDat$x, smDat$y, col = 2, pch = 17, cex = 2)
+
+dev.off()
+
+```
+
+
+# Figure - Bulk vs SC scatter plot (with curve)
 ```{r}
 pdf(file.path(working_path, "Figure_scatter-withblueline.pdf"), width = 18, height =6) 
 par(mfrow=c(1,3), mai=c(0.75,0.75,0.4,0.1), mgp=c(3.3,1.25,0),
